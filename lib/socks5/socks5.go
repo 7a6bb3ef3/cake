@@ -17,6 +17,12 @@ const (
 	SocksAddrTypeIPv4 = 0x01
 	SocksAddrTypeDomain = 0x03
 	SocksAddrTypeIPv6 = 0x04
+
+	SocksRespOK = 0x00
+	SocksRespServErr = 0x01
+	SocksRespHostUnreachable = 0x04
+	SocksRespUnsupportCmd = 0x07
+	SocksRespUnsupportAddrType = 0x08
 )
 // only support the method 0x00 now
 var socks5HandshakeResp = []byte{5 ,0}
@@ -53,6 +59,7 @@ func ParseCMD(stream io.ReadWriter) (Addr ,error) {
 	}
 	// skip version check
 	if buf[1] != SocksCmdConnect{
+		ProxyFailed(SocksRespUnsupportCmd ,stream)
 		return addr ,errors.New("unsupported client cmd")
 	}
 	addr ,e := parseAddr(buf[3] ,stream)
@@ -64,20 +71,6 @@ func ParseCMD(stream io.ReadWriter) (Addr ,error) {
 	return addr ,nil
 }
 
-type Addr struct {
-	IsDomain 	bool
-	Port	 	[]byte
-	IPOrDomain 	[]byte
-}
-
-func (addr Addr) String() string{
-	port := int(addr.Port[0]) * 256 + int(addr.Port[1])
-	if addr.IsDomain{
-		return fmt.Sprintf("%s:%d" ,string(addr.IPOrDomain) ,port)
-	}
-	return fmt.Sprintf("%+v:%d" ,addr.IPOrDomain ,port)
-}
-
 func parseAddr(addrType byte ,stream io.ReadWriter) (Addr ,error){
 	addr := Addr{}
 	buf := make([]byte ,255)
@@ -87,13 +80,13 @@ func parseAddr(addrType byte ,stream io.ReadWriter) (Addr ,error){
 			return addr ,e
 		}
 		addr.IPOrDomain = buf[:4]
-		addr.Port = buf[4:6]
-	case SocksAddrTypeIPv6:
-		if _ ,e := io.ReadFull(stream ,buf[:18]);e != nil{
-			return addr ,e
-		}
-		addr.IPOrDomain = buf[:16]
-		addr.Port = buf[16:18]
+		addr.Port = calcuPort(buf[4] ,buf[5])
+	//case SocksAddrTypeIPv6:
+		//if _ ,e := io.ReadFull(stream ,buf[:18]);e != nil{
+		//	return addr ,e
+		//}
+		//addr.IPOrDomain = buf[:16]
+		//addr.Port = calcuPort(buf[16] ,buf[16])
 	case SocksAddrTypeDomain:
 		if _ ,e := io.ReadFull(stream ,buf[:1]);e != nil{
 			return addr ,e
@@ -104,9 +97,31 @@ func parseAddr(addrType byte ,stream io.ReadWriter) (Addr ,error){
 		}
 		addr.IsDomain = true
 		addr.IPOrDomain = buf[:length]
-		addr.Port = buf[length:length+2]
+		addr.Port = calcuPort(buf[length] ,buf[length+1])
 	default:
-		return addr ,errors.New("unknown address type")
+		ProxyFailed(SocksRespUnsupportAddrType ,stream)
+		return addr ,errors.New("unsupport address type")
 	}
 	return addr ,nil
+}
+
+func calcuPort(a ,b byte) int {
+	return int(a) * 256 + int(b)
+}
+
+func ProxyFailed(respCode byte ,stream io.Writer) error{
+	_ ,e := stream.Write([]byte{SocksVersion ,respCode ,0 ,SocksAddrTypeIPv4, 0, 0, 0, 0, 0, 0})
+	return e
+}
+
+func ProxyOKWithIpv4(stream io.Writer ,ipv4 Addr) error{
+	_ ,e := stream.Write([]byte{SocksVersion ,SocksRespOK ,0 ,SocksAddrTypeIPv4 ,ipv4.IPOrDomain[0] ,
+		ipv4.IPOrDomain[1] ,ipv4.IPOrDomain[2] ,ipv4.IPOrDomain[3] ,ipv4.BytePort()[0],ipv4.BytePort()[1],
+		})
+	return e
+}
+
+func ProxyOK(stream io.Writer) error{
+	_ ,e := stream.Write([]byte{SocksVersion ,SocksRespOK ,0 ,SocksAddrTypeIPv4, 0, 0, 0, 0, 0, 0})
+	return e
 }

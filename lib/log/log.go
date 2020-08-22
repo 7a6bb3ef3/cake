@@ -5,14 +5,13 @@ import (
 	"go.uber.org/zap/zapcore"
 	"io"
 	"os"
-	"strings"
 	"time"
 )
 
 // TODO has no rotate io.Writer
 const logFileName = "cake.log"
 
-var logLevel zapcore.Level = zap.DebugLevel
+var logLevel zapcore.Level = zap.InfoLevel
 
 var logFile *os.File
 var logger *zap.SugaredLogger
@@ -74,10 +73,12 @@ type AdaptLogger struct {
 }
 
 func (a *AdaptLogger)Printf(s string ,args ...interface{}){
-	if strings.HasSuffix(s ,"\n") {
-		s = s[:len(s) - 1]
-	}
-	a.logger.Infof(s ,args)
+	//if strings.HasSuffix(s ,"\n") {
+	//	s = s[:len(s) - 1]
+	//}
+	//a.logger.Infof(s ,args)
+
+	// disable the lib goproxy log info
 }
 
 func GetAdaptLogger() *AdaptLogger{

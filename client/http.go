@@ -25,8 +25,8 @@ func startLocalHttpProxy(){
 	httpprox := &http.Server{
 		Addr: config.LocalHttpAddr,
 		Handler: prox,
-		WriteTimeout: time.Second * 3,
-		ReadTimeout: time.Second * 3,
+		WriteTimeout: time.Second * 20,
+		ReadTimeout: time.Second * 20,
 	}
 
 	log.Info("HTTP listen on " ,config.LocalHttpAddr)
