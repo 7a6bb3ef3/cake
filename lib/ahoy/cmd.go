@@ -11,7 +11,7 @@ const (
 )
 
 
-// customer remote cmd
+// customer remote cmd proto
 //  +-----+-----+-----+-----+-----+
 //  |VER  |CMD  |ACKey|LEN  |ADDR |
 //  +-----+-----+-----+-----+-----+

@@ -8,6 +8,7 @@ import (
 	"github.com/nynicg/cake/lib/socks5"
 	"io"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -90,7 +91,9 @@ func handleCliConn(cliconn net.Conn ,pool *TcpConnPool){
 		return
 	}
 
-	log.Debug("finish handshake ,ready to transport")
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	log.Debug("finish handshake ,ready to mathx")
 	go func() {
 		upN ,e := io.Copy(remote ,cliconn)
 		if e != nil{
@@ -98,13 +101,18 @@ func handleCliConn(cliconn net.Conn ,pool *TcpConnPool){
 			return
 		}
 		log.Debug(fmt.Sprintf("%s %d bit ↑" ,remote.RemoteAddr() ,upN))
+		wg.Done()
 	}()
-	downN ,e := io.Copy(cliconn ,remote)
-	if e != nil{
-		log.Warn("copy server response to client error " ,e)
-		return
-	}
-	log.Debug(fmt.Sprintf("%s %d bit ↓" ,remote.RemoteAddr() ,downN))
+	go func() {
+		downN ,e := io.Copy(cliconn ,remote)
+		if e != nil{
+			log.Warn("copy server response to client error " ,e)
+			return
+		}
+		log.Debug(fmt.Sprintf("%s %d bit ↓" ,remote.RemoteAddr() ,downN))
+		wg.Done()
+	}()
+	wg.Wait()
 }
 
 func handshakeRemote(remote net.Conn ,proxyhost string) error{
@@ -130,8 +138,5 @@ func handshakeRemote(remote net.Conn ,proxyhost string) error{
 	if _ ,e := io.ReadFull(remote ,buf);e != nil{
 		return e
 	}
-	if buf[0] == 1 && buf[1] == 1 &&buf[2] == 4 &&buf[3] == 5 &&buf[4] == 1 && buf[5] == 4 {
-		return nil
-	}
-	return errors.New("unknown server resp")
+	return nil
 }

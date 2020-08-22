@@ -3,10 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/nynicg/cake/lib/ahoy"
-	"github.com/nynicg/cake/lib/log"
+	"github.com/nynicg/cake/lib/mathx"
 	"io"
 	"net"
+	"sync"
+
+	"github.com/nynicg/cake/lib/ahoy"
+	"github.com/nynicg/cake/lib/log"
 )
 
 func startProxyServ() {
@@ -41,13 +44,15 @@ func handleConn(fromsocks net.Conn){
 	}
 	defer outConn.Close()
 	outConn.(*net.TCPConn).SetKeepAlive(false)
-	// ready to transport
+	// ready to mathx
 	if e := onReady(fromsocks);e != nil{
 		log.Errorx("done handshake " + addr ,e)
 		return
 	}
 
-	log.Debug("ready to transport " ,fromsocks.RemoteAddr())
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	log.Debug("ready to mathx " ,fromsocks.RemoteAddr())
 	go func() {
 		upN ,e := io.Copy(outConn ,fromsocks)
 		if e != nil{
@@ -55,14 +60,19 @@ func handleConn(fromsocks net.Conn){
 			return
 		}
 		log.Debug(fmt.Sprintf("%s %d bit ↑" ,outConn.RemoteAddr() ,upN))
+		wg.Done()
 	}()
 
-	downN ,e := io.Copy(fromsocks ,outConn)
-	if e != nil{
-		log.Warn("copy server response to client error " ,e)
-		return
-	}
-	log.Debug(fmt.Sprintf("%s %d bit ↓" ,outConn.RemoteAddr() ,downN))
+	go func() {
+		downN ,e := io.Copy(fromsocks ,outConn)
+		if e != nil{
+			log.Warn("copy server response to client error " ,e)
+			return
+		}
+		log.Debug(fmt.Sprintf("%s %d bit ↓" ,outConn.RemoteAddr() ,downN))
+		wg.Done()
+	}()
+	wg.Wait()
 }
 
 func handshake(ackey string ,fromsocks net.Conn) (string ,error){
@@ -86,6 +96,6 @@ func handshake(ackey string ,fromsocks net.Conn) (string ,error){
 }
 
 func onReady(w io.Writer) error{
-	_ ,e := w.Write([]byte{1 ,1 ,4 ,5 ,1 ,4})
+	_ ,e := w.Write([]byte{mathx.Byten(255) ,mathx.Byten(255) ,mathx.Byten(255) ,mathx.Byten(255) ,mathx.Byten(255) ,mathx.Byten(255)})
 	return e
 }

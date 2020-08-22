@@ -11,21 +11,19 @@ import (
 // TODO has no rotate io.Writer
 const logFileName = "cake.log"
 
-var logLevel zapcore.Level = zap.DebugLevel
-
 var logFile *os.File
 var logger *zap.SugaredLogger
 
-func init(){
+func InitLog(lvl zapcore.Level){
 	f ,e := os.OpenFile(logFileName,os.O_APPEND | os.O_WRONLY | os.O_CREATE ,0755)
 	if e != nil{
 		panic(e)
 	}
 	logFile = f
-	newLogger()
+	newLogger(lvl)
 }
 
-func newLogger() {
+func newLogger(lvl zapcore.Level) {
 	var encfg = zap.NewProductionEncoderConfig()
 	//encfg.EncodeTime = zapcore.ISO8601TimeEncoder
 	timeEncoder := func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
@@ -36,7 +34,7 @@ func newLogger() {
 	encfg.EncodeLevel = zapcore.CapitalLevelEncoder
 	mulw := io.MultiWriter(logFile,os.Stderr)
 	ws := zapcore.AddSync(mulw)
-	core := zapcore.NewCore(zapcore.NewConsoleEncoder(encfg), ws, logLevel)
+	core := zapcore.NewCore(zapcore.NewConsoleEncoder(encfg), ws, lvl)
 	logger = zap.New(core).Sugar()
 }
 

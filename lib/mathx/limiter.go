@@ -1,4 +1,4 @@
-package transport
+package mathx
 
 import (
 	_ "golang.org/x/time/rate"
