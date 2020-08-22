@@ -16,7 +16,7 @@ const (
 //  |VER  |CMD  |ACKey|LEN  |ADDR |
 //  +-----+-----+-----+-----+-----+
 //  |1    |1    |16   |1    |LEN  |
-// if success ,server response:
+// if success ,server response(random 6 bit):
 //  +-----+-----+-----+-----+-----+-----+
 //  |1    |1    |4    |5    |1    |4    |
 type RemoteConnectRequest struct {

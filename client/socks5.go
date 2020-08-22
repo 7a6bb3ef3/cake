@@ -63,7 +63,11 @@ func handleCliConn(cliconn net.Conn ,pool *TcpConnPool){
 	log.Debug("parse remote host -> " ,addr.Address())
 
 	var remote net.Conn
-	if Bypass(addr.Host()) {
+	switch Bypass(addr.Host()) {
+	case BypassDiscard:
+		socks5.ProxyFailed(socks5.SocksRespHostUnreachable ,cliconn)
+		return
+	case BypassTrue:
 		remote ,e = net.Dial("tcp" ,addr.Address())
 		if e != nil{
 			log.Errorx("dail bypassed remote addr " ,e)
@@ -71,7 +75,7 @@ func handleCliConn(cliconn net.Conn ,pool *TcpConnPool){
 			return
 		}
 		remote.(*net.TCPConn).SetKeepAlive(false)
-	}else{
+	case BypassProxy:
 		remote ,e = net.Dial("tcp" ,config.RemoteExitAddr)
 		if e != nil{
 			log.Errorx("dail remote exit " ,e)
@@ -83,8 +87,10 @@ func handleCliConn(cliconn net.Conn ,pool *TcpConnPool){
 			socks5.ProxyFailed(socks5.SocksRespServErr ,cliconn)
 			return
 		}
+	default:
+		socks5.ProxyFailed(socks5.SocksRespServErr ,cliconn)
+		return
 	}
-
 	defer remote.Close()
 	if e := socks5.ProxyOK(cliconn);e != nil{
 		log.Errorx("local socks5 sent OK resp " ,e)
