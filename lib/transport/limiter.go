@@ -11,7 +11,6 @@ func CopyAll(dst io.Writer ,src io.Reader ,buflen int) (int ,error){
 	if buflen <= 0 {
 		buflen = defaultBuflen
 	}
-
 	return 0 ,nil
 }
 

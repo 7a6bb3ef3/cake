@@ -20,7 +20,8 @@ func loadApnic(){
 		return
 	}
 
-	log.Info("Loading http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest...")
+	log.Info("Loading ip list from " ,ApnicUrl)
+	log.Info("This process may take several minutes")
 	f ,e := os.OpenFile(ipFile ,os.O_CREATE | os.O_RDWR | os.O_APPEND ,0755)
 	if e != nil {
 		panic(e)
@@ -43,5 +44,5 @@ func loadApnic(){
 }
 
 func Bypass(host string) bool {
-	return true
+	return false
 }

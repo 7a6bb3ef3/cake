@@ -11,7 +11,7 @@ import (
 // TODO has no rotate io.Writer
 const logFileName = "cake.log"
 
-var logLevel zapcore.Level = zap.InfoLevel
+var logLevel zapcore.Level = zap.DebugLevel
 
 var logFile *os.File
 var logger *zap.SugaredLogger

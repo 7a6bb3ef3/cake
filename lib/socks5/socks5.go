@@ -6,6 +6,8 @@ import (
 	"io"
 )
 
+
+// RFC1928
 const (
 	SocksVersion = 0x05
 
