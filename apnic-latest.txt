@@ -1,4 +1,4 @@
-# Chinese ipv4 from http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest.1.0.1
+# Chinese ipv4(ignore .0) got from http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest.
 1.0.2
 1.0.8
 1.0.32

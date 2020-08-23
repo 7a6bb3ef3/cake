@@ -53,7 +53,7 @@ func loadPassrule(){
 	if e != nil{
 		panic(e)
 	}
-	f.WriteString("# Chinese ipv4(*.*.*.0) got from http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest.")
+	f.WriteString("# Chinese ipv4(ignore .0) got from http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest.")
 	rd := bufio.NewReader(resp.Body)
 	for {
 		line ,e := rd.ReadString('\n')
