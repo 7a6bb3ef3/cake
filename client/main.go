@@ -32,8 +32,7 @@ func init(){
 
 func main(){
 	log.InitLog(config.LogLevel)
-
-	loadApnic()
+	loadPassrule()
 	go startLocalHttpProxy()
 	startLocalSocksProxy()
 }

@@ -2,12 +2,11 @@ package main
 
 import (
 	"bufio"
-	"github.com/BurntSushi/toml"
 	"net/http"
 	"os"
 	"strings"
 
-	_ "github.com/BurntSushi/toml"
+	"github.com/BurntSushi/toml"
 	"github.com/nynicg/cake/lib/log"
 )
 
@@ -18,13 +17,21 @@ const (
 	ipFile = "apnic-latest.txt"
 )
 
-var cniplist = make(map[string]struct{})
-var domainlist domain
+// deprecated
+var cniplist map[string]struct{}
+var domainlist domainRule
+var domainCac domainCache
 
-func loadApnic(){
+func init(){
+	domainCac = domainCache{
+		cache: map[string]int{},
+	}
+	cniplist = make(map[string]struct{})
+}
+
+func loadPassrule(){
 	defer func() {
 		go func() {
-			loadCNIPList()
 			domainlist = loadDomainList()
 		}()
 	}()
@@ -67,7 +74,7 @@ func getIP(line string) string{
 	return nopre[:i-2]
 }
 
-// TODO not gentle
+// Deprecated
 func loadCNIPList() error{
 	f ,e := os.OpenFile(ipFile ,os.O_RDONLY ,0755)
 	if e != nil {
@@ -85,13 +92,13 @@ func loadCNIPList() error{
 }
 
 
-type domain struct {
+type domainRule struct {
 	Bypass	map[string]uint8	`toml:"bypass"`
 	Ads		map[string]uint8	`toml:"ads"`
 }
 
-func loadDomainList() domain{
-	do := &domain{}
+func loadDomainList() domainRule{
+	do := &domainRule{}
 	if _ ,e := toml.DecodeFile(domainFile ,do);e != nil{
 		panic(e)
 	}
@@ -105,6 +112,7 @@ const (
 )
 // Bypass 0:proxy ,1:bypass ,2:discard
 func Bypass(dm string) int{
+
 	for k := range domainlist.Bypass{
 		if strings.HasSuffix(dm ,k) {
 			return BypassTrue
@@ -117,5 +125,19 @@ func Bypass(dm string) int{
 		}
 	}
 	return BypassProxy
+}
+
+type domainCache struct {
+	cache map[string]int
+}
+
+func PutDomainCache(domain string ,rule int){
+	domainCac.cache[domain] = rule
+}
+
+func GetDomainCache(domain string) (int ,bool) {
+	i ,r := domainCac.cache[domain]
+	log.Debug("get domain bypass rule from cache " ,domain , " -> " ,i ,r)
+	return i, r
 }
 

@@ -63,7 +63,14 @@ func handleCliConn(cliconn net.Conn ,pool *TcpConnPool){
 	log.Debug("parse remote host -> " ,addr.Address())
 
 	var remote net.Conn
-	switch Bypass(addr.Host()) {
+	var bypass int
+	if i ,ok := GetDomainCache(addr.Host());ok{
+		bypass = i
+	}else{
+		bypass = Bypass(addr.Host())
+		PutDomainCache(addr.Host() ,bypass)
+	}
+	switch bypass {
 	case BypassDiscard:
 		socks5.ProxyFailed(socks5.SocksRespHostUnreachable ,cliconn)
 		return
