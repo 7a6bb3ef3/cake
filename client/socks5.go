@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/nynicg/cake/lib"
 	"github.com/nynicg/cake/lib/ahoy"
+	"github.com/nynicg/cake/lib/encrypt"
 	"github.com/nynicg/cake/lib/log"
 	"github.com/nynicg/cake/lib/socks5"
 	"io"
@@ -12,7 +13,7 @@ import (
 	"sync"
 )
 
-func startLocalSocksProxy(){
+func startLocalSocksProxy(encryptor encrypt.StreamEncryptor){
 	ls ,e := net.Listen("tcp" ,config.LocalSocksAddr)
 	if e != nil{
 		log.Panic(e)
@@ -26,11 +27,11 @@ func startLocalSocksProxy(){
 			log.Errorx("accept new client conn " ,e)
 			continue
 		}
-		go handleCliConn(cliconn ,pool)
+		go handleCliConn(cliconn ,pool ,encryptor)
 	}
 }
 
-func handleCliConn(cliconn net.Conn ,pool *lib.TcpConnPool){
+func handleCliConn(cliconn net.Conn ,pool *lib.TcpConnPool ,encryptor encrypt.StreamEncryptor){
 	defer func() {
 		cliconn.Close()
 		pool.FreeLocalTcpConn(cliconn)
@@ -117,7 +118,7 @@ func handshakeRemote(remote net.Conn ,proxyhost string) error{
 		return errors.New("host addr is too long(>255)")
 	}
 	req := ahoy.RemoteConnectRequest{
-		Version: 		1,
+		Encryption: 	ahoy.EncryptionTypeAES128CBC,
 		Command: 		ahoy.CommandConnect,
 		AccessKey:      []byte(config.RemoteAccessKey),
 		AddrLength:     byte(len(proxyhost)),

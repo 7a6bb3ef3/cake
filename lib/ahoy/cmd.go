@@ -10,17 +10,21 @@ const (
 	CommandConnect Command = iota + 1
 )
 
+const (
+	EncryptionTypeAES128CBC byte = iota + 1
+)
+
 
 // customer remote cmd proto
 //  +-----+-----+-----+-----+-----+
-//  |VER  |CMD  |ACKey|LEN  |ADDR |
+//  |ENC  |CMD  |ACKey|LEN  |ADDR |
 //  +-----+-----+-----+-----+-----+
 //  |1    |1    |16   |1    |LEN  |
 // if success ,server response(random 6 bit):
 //  +-----+-----+-----+-----+-----+-----+
 //  |1    |1    |4    |5    |1    |4    |
 type RemoteConnectRequest struct {
-	Version		byte
+	Encryption	byte
 	Command 	Command
 	AccessKey	[]byte
 	AddrLength	byte
@@ -32,7 +36,7 @@ func (r RemoteConnectRequest) Bytes() ([]byte ,error){
 		return nil ,errors.New("invalid request")
 	}
 	buf := make([]byte ,1 + 1 + 16 + 1 + int(r.AddrLength))
-	buf[0] = r.Version
+	buf[0] = r.Encryption
 	buf[1] = byte(r.Command)
 	for i:=2;i<18;i++{
 		buf[i] = r.AccessKey[i-2]
