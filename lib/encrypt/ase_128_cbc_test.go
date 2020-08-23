@@ -1,30 +1,9 @@
 package encrypt
 
 import (
-	"bytes"
 	"log"
 	"testing"
 )
-
-func TestAES128CBC_EncryptStream(t *testing.T) {
-	aes ,e := NewAES128CBC("1145141145141145" ,"1145141145141145")
-	if e != nil{
-		t.Fatal(e)
-	}
-
-	in := bytes.NewBuffer([]byte{})
-	in.WriteString("simple msg")
-	dst1 := bytes.NewBuffer([]byte{})
-	if _ ,e := aes.EncryptStream(dst1 ,in);e != nil{
-		t.Fatal(e)
-	}
-	dst2 := bytes.NewBuffer([]byte{})
-	t.Log(dst1.String())
-	if _ ,e := aes.DecryptStream(dst2 ,dst1);e != nil{
-		t.Fatal(e)
-	}
-	t.Log(dst2.String())
-}
 
 func TestAES128CBC_Encrypt(t *testing.T) {
 

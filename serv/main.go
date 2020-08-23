@@ -54,8 +54,12 @@ func main(){
 	startProxyServ()
 }
 
+// TODO use key-encrypt map
 func initEncryptors() error{
 	if e := encrypt.SetDefaultAES128CBC(config.AESKey ,config.AESVi);e != nil{
+		return e
+	}
+	if e := encrypt.SetDefaultAES128CFB(config.AESKey);e != nil{
 		return e
 	}
 	return nil

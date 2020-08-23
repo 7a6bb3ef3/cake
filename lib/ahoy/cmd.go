@@ -2,18 +2,12 @@ package ahoy
 
 import (
 	"errors"
-	"github.com/nynicg/cake/lib/encrypt"
 )
 
 type Command byte
 
 const (
 	CommandConnect Command = iota + 1
-)
-
-const (
-	EncryptionTypeAES128CBC = encrypt.EncryptTypeAES128CBC
-	EncryptionTypePlain = encrypt.EncryptTypePlain
 )
 
 

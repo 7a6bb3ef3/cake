@@ -8,6 +8,7 @@ import (
 
 const (
 	EncryptTypeAES128CBC = iota + 1
+	EncryptTypeAES128CFB
 	EncryptTypePlain
 )
 
@@ -24,6 +25,8 @@ func GetStreamEncryptor(index int) (Encryptor ,error){
 	switch index {
 	case EncryptTypeAES128CBC:
 		return defaultAES128CBC ,nil
+	case EncryptTypeAES128CFB:
+		return defaultAes128cfb ,nil
 	case EncryptTypePlain:
 		return defaultPlain ,nil
 	default:
@@ -35,6 +38,8 @@ func GetStreamEncryptorIndexByName(name string) int{
 	switch strings.ToLower(name) {
 	case "aes128cbc":
 		return EncryptTypeAES128CBC
+	case "aes128cfb":
+		return EncryptTypeAES128CFB
 	case "plain":
 		return EncryptTypePlain
 	default:
@@ -47,6 +52,8 @@ func GetStreamEncryptorByName(name string) (Encryptor ,error){
 	switch strings.ToLower(name) {
 	case "aes128cbc":
 		return defaultAES128CBC ,nil
+	case "aes128cfb":
+		return defaultAes128cfb ,nil
 	case "plain":
 		return defaultPlain ,nil
 	default:
@@ -59,6 +66,8 @@ func NewStreamEncryptorByName(name ,key ,vi string) (Encryptor ,error){
 	switch strings.ToLower(name) {
 	case "aes128cbc":
 		return NewAES128CBC(key ,vi)
+	case "aes128cfb":
+		return NewAES128CFB(key)
 	case "plain":
 		return defaultPlain ,nil
 	default:
