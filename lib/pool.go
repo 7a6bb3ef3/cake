@@ -1,16 +1,14 @@
-package main
+package lib
 
 import (
-	"errors"
 	"net"
 	"sync"
 
 	"github.com/nynicg/cake/lib/log"
-
 )
 
 
-func NewTcpConnPool(maxConnnum int) *TcpConnPool{
+func NewTcpConnPool(maxConnnum int) *TcpConnPool {
 	p := &TcpConnPool{}
 	p.localTks = make(chan struct{} ,maxConnnum)
 	p.localTcpPool = sync.Pool{
@@ -26,23 +24,21 @@ type TcpConnPool struct {
 	localTcpPool sync.Pool
 }
 
-func (p *TcpConnPool)GetLocalTcpConn() (net.Conn ,error){
+func (p *TcpConnPool)GetLocalTcpConn() net.Conn{
 	select{
 	case p.localTks <- struct{}{}:
 		log.Debug("get conn -> " ,len(p.localTks))
 		conn ,ok := p.localTcpPool.Get().(*net.TCPConn)
 		if !ok {
-			return p.localTcpPool.New().(net.Conn) ,nil
+			return p.localTcpPool.New().(net.Conn)
 		}
-		return conn ,nil
-	default:
-		return nil ,errors.New("too many connection ,wait for next available ticket")
+		return conn
 	}
 }
 
 func (p *TcpConnPool)FreeLocalTcpConn(conn net.Conn) {
-	log.Debug("free conn -> " ,len(p.localTks))
 	_ = <- p.localTks
 	conn.Close()
 	p.localTcpPool.Put(conn)
+	log.Debug("free conn -> " ,len(p.localTks))
 }
