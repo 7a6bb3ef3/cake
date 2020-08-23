@@ -67,7 +67,7 @@ func handleConn(fromsocks net.Conn ,pool *pool.TcpConnPool){
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		upN ,e := ahoy.CopyWithEncryptor(outConn ,fromsocks ,encryptor.Decrypt)
+		upN ,e := ahoy.CopyWithEncryptFunc(outConn ,fromsocks ,encryptor.Decrypt)
 		if e != nil{
 			log.Warn("copy client request to remote server error " ,e)
 			return
@@ -78,7 +78,7 @@ func handleConn(fromsocks net.Conn ,pool *pool.TcpConnPool){
 
 	go func() {
 		defer wg.Done()
-		downN ,e := ahoy.CopyWithEncryptor(fromsocks ,outConn ,encryptor.Encrypt)
+		downN ,e := ahoy.CopyWithEncryptFunc(fromsocks ,outConn ,encryptor.Encrypt)
 		if e != nil{
 			log.Warn("copy server response to client error " ,e)
 			return

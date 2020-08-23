@@ -97,8 +97,7 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encr
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		upN ,e := ahoy.CopyWithEncryptor(remote ,cliconn ,encryptorSelect.Encrypt)
-		//upN ,e := io.Copy(remote ,cliconn)
+		upN ,e := ahoy.CopyWithEncryptFunc(remote ,cliconn ,encryptorSelect.Encrypt)
 		if e != nil{
 			log.Warn("copy client request to remote server error " ,e)
 			return
@@ -107,9 +106,7 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encr
 	}()
 	go func() {
 		defer wg.Done()
-		downN ,e := ahoy.CopyWithEncryptor(cliconn ,remote ,encryptorSelect.Decrypt)
-		//downN ,e := encryptorSelect.DecryptStream(cliconn ,remote)
-		//downN ,e := io.Copy(cliconn ,remote)
+		downN ,e := ahoy.CopyWithEncryptFunc(cliconn ,remote ,encryptorSelect.Decrypt)
 		if e != nil{
 			log.Warn("copy server response to client error " ,e)
 			return

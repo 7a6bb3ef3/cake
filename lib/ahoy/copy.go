@@ -9,14 +9,16 @@ import (
 )
 
 
-
 var bufPool *pool.BufferPool
 
 func init(){
 	bufPool = pool.NewBufPool(32 * 1024)
 }
 
-func CopyWithEncryptor(dst io.Writer ,src io.Reader ,encrypt encrypt.EncryptFunc) (int ,error){
+
+// CopyWithEncryptFunc both encryption and decryption func is welcome here ,
+// anyway they are used to process data read from src,then write to dst
+func CopyWithEncryptFunc(dst io.Writer ,src io.Reader ,encrypt encrypt.EncryptFunc) (int ,error){
 	buf := bufPool.Get()
 	defer func() {
 		bufPool.Put(buf)
@@ -26,7 +28,7 @@ func CopyWithEncryptor(dst io.Writer ,src io.Reader ,encrypt encrypt.EncryptFunc
 		written = 0
 		err error
 	)
-	// Go\src\io\io.go
+	// https://github.com/golang/go/blob/master/src/io/io.go
 	for {
 		nr, er := src.Read(buf)
 		if nr > 0 {

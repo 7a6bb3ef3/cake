@@ -5,7 +5,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"errors"
-	"github.com/nynicg/cake/lib/pool"
 )
 
 var defaultAES128CBC Encryptor
@@ -14,7 +13,6 @@ type AES128CBC struct {
 	key		[]byte
 	block 	cipher.Block
 	iv      []byte
-	bufpool	*pool.BufferPool
 }
 
 func SetDefaultAES128CBC(key ,iv string) error{
@@ -30,7 +28,6 @@ func NewAES128CBC(key ,iv string) (Encryptor ,error){
 	ae := &AES128CBC{
 		key: []byte(key),
 		iv:  []byte(iv),
-		bufpool: pool.NewBufPool(32 * 1024),
 	}
 	block, err := aes.NewCipher([]byte(key))
 	if err != nil {
