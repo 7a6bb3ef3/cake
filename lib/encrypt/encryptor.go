@@ -1,20 +1,69 @@
 package encrypt
 
 import (
+	"errors"
 	"io"
+	"strings"
 )
 
-// StreamEncryptor used to encrypt communication in net.conn.
-type StreamEncryptor interface {
-	// EncryptStream encrypt the plain data from in and write to out ,
-	// out will get encrypted data
-	EncryptStream(dst io.Writer ,src io.Reader) error
-	// EncryptStream decrypt the encryted data from in and write to out ,
-	// out will get the plain data
-	DecryptStream(dst io.Writer ,src io.Reader) error
+const (
+	EncryptTypeAES128CBC = iota + 1
+	EncryptTypePlain
+)
 
+// EncryptFunc both encryption or decryption func is ok
+type EncryptFunc func(in []byte) (out []byte ,e error)
+
+// StreamEncryptor used to encrypt communication in net.conn.
+type Encryptor interface {
 	Encrypt(in []byte) (out []byte ,err error)
 	Decrypt(in []byte) (out []byte ,err error)
+}
+
+func GetStreamEncryptor(index int) (Encryptor ,error){
+	switch index {
+	case EncryptTypeAES128CBC:
+		return defaultAES128CBC ,nil
+	case EncryptTypePlain:
+		return defaultPlain ,nil
+	default:
+		return nil ,errors.New("unknown encrytor type")
+	}
+}
+
+func GetStreamEncryptorIndexByName(name string) int{
+	switch strings.ToLower(name) {
+	case "aes128cbc":
+		return EncryptTypeAES128CBC
+	case "plain":
+		return EncryptTypePlain
+	default:
+		// TODO rm panic
+		panic("no such stream encryptor")
+	}
+}
+
+func GetStreamEncryptorByName(name string) (Encryptor ,error){
+	switch strings.ToLower(name) {
+	case "aes128cbc":
+		return defaultAES128CBC ,nil
+	case "plain":
+		return defaultPlain ,nil
+	default:
+		return nil ,errors.New("unknown encrytor type")
+	}
+}
+
+
+func NewStreamEncryptorByName(name ,key ,vi string) (Encryptor ,error){
+	switch strings.ToLower(name) {
+	case "aes128cbc":
+		return NewAES128CBC(key ,vi)
+	case "plain":
+		return defaultPlain ,nil
+	default:
+		return nil ,errors.New("unknown encrytor type")
+	}
 }
 
 

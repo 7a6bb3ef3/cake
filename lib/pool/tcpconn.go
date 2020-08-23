@@ -1,4 +1,4 @@
-package lib
+package pool
 
 import (
 	"net"

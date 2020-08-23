@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/nynicg/cake/lib"
-	"io"
+	"github.com/nynicg/cake/lib/encrypt"
+	"github.com/nynicg/cake/lib/pool"
 	"net"
 	"sync"
 	"time"
@@ -17,7 +17,7 @@ func startProxyServ() {
 	if e != nil {
 		log.Panic(e)
 	}
-	pool := lib.NewTcpConnPool(config.MaxConn)
+	pool := pool.NewTcpConnPool(config.MaxConn)
 	log.Info("Listen on " ,config.LocalAddr)
 	for {
 		fromsocks := pool.GetLocalTcpConn()
@@ -30,16 +30,22 @@ func startProxyServ() {
 	}
 }
 
-func handleConn(fromsocks net.Conn ,pool *lib.TcpConnPool){
+func handleConn(fromsocks net.Conn ,pool *pool.TcpConnPool){
 	log.Debug("handle conn from " ,fromsocks.RemoteAddr())
 	defer func() {
 		fromsocks.Close()
 		pool.FreeLocalTcpConn(fromsocks)
 	}()
 	fromsocks.(*net.TCPConn).SetKeepAlive(false)
-	addr ,e := ahoy.Handshake(config.AccessKey ,fromsocks)
+	encryptType ,addr ,e := ahoy.Handshake(config.AccessKey ,fromsocks)
 	if e != nil{
 		log.Errorx("handshake " ,e)
+		return
+	}
+	log.Debug("got encrypt type " ,encryptType)
+	encryptor ,e := encrypt.GetStreamEncryptor(encryptType)
+	if e != nil{
+		log.Errorx("get stream encryptor " ,e)
 		return
 	}
 	log.Debug("get proxy addr " ,addr ," from remote " ,fromsocks.RemoteAddr())
@@ -61,7 +67,7 @@ func handleConn(fromsocks net.Conn ,pool *lib.TcpConnPool){
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		upN ,e := io.Copy(outConn ,fromsocks)
+		upN ,e := ahoy.CopyWithEncryptor(outConn ,fromsocks ,encryptor.Decrypt)
 		if e != nil{
 			log.Warn("copy client request to remote server error " ,e)
 			return
@@ -72,7 +78,7 @@ func handleConn(fromsocks net.Conn ,pool *lib.TcpConnPool){
 
 	go func() {
 		defer wg.Done()
-		downN ,e := io.Copy(fromsocks ,outConn)
+		downN ,e := ahoy.CopyWithEncryptor(fromsocks ,outConn ,encryptor.Encrypt)
 		if e != nil{
 			log.Warn("copy server response to client error " ,e)
 			return

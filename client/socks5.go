@@ -3,38 +3,38 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/nynicg/cake/lib"
 	"github.com/nynicg/cake/lib/ahoy"
 	"github.com/nynicg/cake/lib/encrypt"
 	"github.com/nynicg/cake/lib/log"
+	"github.com/nynicg/cake/lib/pool"
 	"github.com/nynicg/cake/lib/socks5"
 	"io"
 	"net"
 	"sync"
 )
 
-func startLocalSocksProxy(encryptor encrypt.StreamEncryptor){
+func startLocalSocksProxy(encryptor encrypt.Encryptor){
 	ls ,e := net.Listen("tcp" ,config.LocalSocksAddr)
 	if e != nil{
 		log.Panic(e)
 	}
 	log.Info("Socks5 listen on " ,config.LocalSocksAddr)
-	pool := lib.NewTcpConnPool(config.MaxLocalConnNum)
+	pl := pool.NewTcpConnPool(config.MaxLocalConnNum)
 	for {
-		cliconn := pool.GetLocalTcpConn()
+		cliconn := pl.GetLocalTcpConn()
 		cliconn ,e = ls.Accept()
 		if e != nil{
 			log.Errorx("accept new client conn " ,e)
 			continue
 		}
-		go handleCliConn(cliconn ,pool ,encryptor)
+		go handleCliConn(cliconn ,pl ,encryptor)
 	}
 }
 
-func handleCliConn(cliconn net.Conn ,pool *lib.TcpConnPool ,encryptor encrypt.StreamEncryptor){
+func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encryptor){
 	defer func() {
 		cliconn.Close()
-		pool.FreeLocalTcpConn(cliconn)
+		pl.FreeLocalTcpConn(cliconn)
 	}()
 	cliconn.(*net.TCPConn).SetKeepAlive(false)
 	if e := socks5.Handshake(cliconn);e != nil{
@@ -56,11 +56,13 @@ func handleCliConn(cliconn net.Conn ,pool *lib.TcpConnPool ,encryptor encrypt.St
 		bypass = Bypass(addr.Host())
 		PutDomainCache(addr.Host() ,bypass)
 	}
+	var encryptorSelect encrypt.Encryptor
 	switch bypass {
 	case BypassDiscard:
 		socks5.ProxyFailed(socks5.SocksRespHostUnreachable ,cliconn)
 		return
 	case BypassTrue:
+		encryptorSelect ,_ = encrypt.GetStreamEncryptor(encrypt.EncryptTypePlain)
 		remote ,e = net.Dial("tcp" ,addr.Address())
 		if e != nil{
 			log.Errorx("dail bypassed remote addr " ,e)
@@ -68,6 +70,7 @@ func handleCliConn(cliconn net.Conn ,pool *lib.TcpConnPool ,encryptor encrypt.St
 			return
 		}
 	case BypassProxy:
+		encryptorSelect = encryptor
 		remote ,e = net.Dial("tcp" ,config.RemoteExitAddr)
 		if e != nil{
 			log.Errorx("dail remote exit " ,e)
@@ -94,7 +97,8 @@ func handleCliConn(cliconn net.Conn ,pool *lib.TcpConnPool ,encryptor encrypt.St
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		upN ,e := io.Copy(remote ,cliconn)
+		upN ,e := ahoy.CopyWithEncryptor(remote ,cliconn ,encryptorSelect.Encrypt)
+		//upN ,e := io.Copy(remote ,cliconn)
 		if e != nil{
 			log.Warn("copy client request to remote server error " ,e)
 			return
@@ -103,7 +107,9 @@ func handleCliConn(cliconn net.Conn ,pool *lib.TcpConnPool ,encryptor encrypt.St
 	}()
 	go func() {
 		defer wg.Done()
-		downN ,e := io.Copy(cliconn ,remote)
+		downN ,e := ahoy.CopyWithEncryptor(cliconn ,remote ,encryptorSelect.Decrypt)
+		//downN ,e := encryptorSelect.DecryptStream(cliconn ,remote)
+		//downN ,e := io.Copy(cliconn ,remote)
 		if e != nil{
 			log.Warn("copy server response to client error " ,e)
 			return
@@ -113,12 +119,13 @@ func handleCliConn(cliconn net.Conn ,pool *lib.TcpConnPool ,encryptor encrypt.St
 	wg.Wait()
 }
 
+
 func handshakeRemote(remote net.Conn ,proxyhost string) error{
 	if len(proxyhost) > 255 {
 		return errors.New("host addr is too long(>255)")
 	}
 	req := ahoy.RemoteConnectRequest{
-		Encryption: 	ahoy.EncryptionTypeAES128CBC,
+		Encryption: 	byte(encrypt.GetStreamEncryptorIndexByName(config.EncryptType)),
 		Command: 		ahoy.CommandConnect,
 		AccessKey:      []byte(config.RemoteAccessKey),
 		AddrLength:     byte(len(proxyhost)),

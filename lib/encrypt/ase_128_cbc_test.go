@@ -15,23 +15,32 @@ func TestAES128CBC_EncryptStream(t *testing.T) {
 	in := bytes.NewBuffer([]byte{})
 	in.WriteString("simple msg")
 	dst1 := bytes.NewBuffer([]byte{})
-	if e := aes.EncryptStream(dst1 ,in);e != nil{
+	if _ ,e := aes.EncryptStream(dst1 ,in);e != nil{
 		t.Fatal(e)
 	}
 	dst2 := bytes.NewBuffer([]byte{})
 	t.Log(dst1.String())
-	if e := aes.DecryptStream(dst2 ,dst1);e != nil{
+	if _ ,e := aes.DecryptStream(dst2 ,dst1);e != nil{
 		t.Fatal(e)
 	}
 	t.Log(dst2.String())
 }
 
 func TestAES128CBC_Encrypt(t *testing.T) {
-	aes ,e := NewAES128CBC("1145141145141145" ,"1145141145141145")
+
+	msg := `GET /success.txt?ipv6 HTTP/1.1
+Host: detectportal.firefox.com
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:79.0) Gecko/20100101 Firefox/79.0
+Accept: */*
+Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+Cache-Control: no-cache
+Pragma: no-cache
+Accept-Encoding: gzip`
+	aes ,e := NewAES128CBC("BAby10nStAGec0at" ,"j0ker_nE1_diyuse")
 	if e != nil{
 		t.Fatal(e)
 	}
-	out ,e := aes.Encrypt([]byte("simple msg"))
+	out ,e := aes.Encrypt([]byte(msg))
 	if e != nil{
 		t.Fatal(e)
 	}
@@ -39,7 +48,7 @@ func TestAES128CBC_Encrypt(t *testing.T) {
 
 
 
-	aes2 ,e := NewAES128CBC("1145141145141145" ,"1145141145141145")
+	aes2 ,e := NewAES128CBC("BAby10nStAGec0at" ,"j0ker_nE1_diyuse")
 	if e != nil{
 		t.Fatal(e)
 	}

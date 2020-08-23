@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/nynicg/cake/lib/encrypt"
 	"github.com/nynicg/cake/lib/log"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -19,7 +20,7 @@ type Config struct {
 	Help				bool
 	EncryptType			string
 	AESKey				string
-	AESVi				string
+	AESIv				string
 }
 
 var config Config
@@ -33,9 +34,9 @@ func init(){
 	flag.IntVar(&cfg.LogLevel ,"l" ,int(zap.InfoLevel) ,"log level(from -1 to 5)")
 	flag.IntVar(&cfg.MaxLocalConnNum ,"n" ,2048 ,"the maximum number of local connections")
 	flag.BoolVar(&cfg.Help ,"help" ,false ,"display help info")
-	flag.StringVar(&cfg.EncryptType ,"encrypt" ,"AES128CBC" ,"supported encryption methods ,following is the supported list:\n {AES128CBC}")
+	flag.StringVar(&cfg.EncryptType ,"encrypt" ,"AES128CBC" ,"supported encryption methods ,following is the supported list:\n {AES128CBC|PLAIN}")
 	flag.StringVar(&cfg.AESKey ,"aesKey" ,"BAby10nStAGec0at" ,"key of AES cryption")
-	flag.StringVar(&cfg.AESVi ,"aesVi" ,"j0ker_nE1_diyuse" ,"vi of AES_CBC cryption")
+	flag.StringVar(&cfg.AESIv ,"aesIv" ,"j0ker_nE1_diyusi" ,"vi of AES_CBC cryption")
 	flag.Parse()
 	flag.Usage = usage
 	config = *cfg
@@ -54,6 +55,12 @@ func main(){
 	log.InitLog(zapcore.Level(config.LogLevel))
 	loadPassrule()
 	go startLocalHttpProxy()
-	startLocalSocksProxy()
+	en ,e := encrypt.NewAES128CBC(config.AESKey ,config.AESIv)
+	if e != nil{
+		log.Panic(e)
+	}
+	log.Info("Use encryption " ,config.EncryptType)
+	startLocalSocksProxy(en)
 }
+
 

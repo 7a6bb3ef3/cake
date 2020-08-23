@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/BurntSushi/toml"
 	"github.com/nynicg/cake/lib/log"
@@ -129,15 +130,20 @@ func Bypass(dm string) int{
 
 type domainCache struct {
 	cache map[string]int
+	mux   sync.Mutex
 }
 
 func PutDomainCache(domain string ,rule int){
+	domainCac.mux.Lock()
 	domainCac.cache[domain] = rule
+	domainCac.mux.Unlock()
 }
 
 func GetDomainCache(domain string) (int ,bool) {
+	domainCac.mux.Lock()
 	i ,r := domainCac.cache[domain]
-	log.Debug("get domain bypass rule from cache " ,domain , " -> " ,i ,r)
+	domainCac.mux.Unlock()
+	log.Debug("get domain bypass rule from cache " ,domain , " -> " ,i ," in cache " ,r)
 	return i, r
 }
 

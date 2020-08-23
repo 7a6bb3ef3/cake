@@ -2,6 +2,7 @@ package ahoy
 
 import (
 	"errors"
+	"github.com/nynicg/cake/lib/encrypt"
 )
 
 type Command byte
@@ -11,7 +12,8 @@ const (
 )
 
 const (
-	EncryptionTypeAES128CBC byte = iota + 1
+	EncryptionTypeAES128CBC = encrypt.EncryptTypeAES128CBC
+	EncryptionTypePlain = encrypt.EncryptTypePlain
 )
 
 
