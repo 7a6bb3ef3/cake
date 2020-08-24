@@ -44,10 +44,6 @@ func CopyWithEncryptFunc(dst io.Writer ,src io.Reader ,encrypt encrypt.EncryptFu
 				err = ew
 				break
 			}
-			if nr != nw {
-				err = io.ErrShortWrite
-				break
-			}
 		}
 		if er != nil {
 			if er != io.EOF {
