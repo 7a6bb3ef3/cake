@@ -36,8 +36,11 @@ func (a AES128CFB) Encrypt(in []byte) ([]byte,error) {
 }
 
 func (a AES128CFB) Decrypt(in []byte) (out []byte, err error) {
-	if len(in) < aes.BlockSize {
-		panic("ciphertext too short")
+	if len(in) == 0 {
+		return in ,nil
+	}
+	if len(in) % a.block.BlockSize() != 0 {
+		return in ,errors.New("input data seems not like an encrypted byte slice")
 	}
 	iv := in[:aes.BlockSize]
 	in = in[aes.BlockSize:]
