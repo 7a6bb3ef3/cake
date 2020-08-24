@@ -2,13 +2,15 @@ package encrypt
 
 import (
 	"errors"
-	"io"
+	"fmt"
 	"strings"
+	"sync"
 )
 
 const (
-	EncryptTypeAES128CBC = iota + 1
-	EncryptTypeAES128CFB
+	EncryptTypeAES128CFB = iota + 1
+	// xchacha20poly1305
+	EncryptTypeCHACHA
 	EncryptTypePlain
 )
 
@@ -21,67 +23,47 @@ type Encryptor interface {
 	Decrypt(in []byte) (out []byte ,err error)
 }
 
-func GetStreamEncryptor(index int) (Encryptor ,error){
-	switch index {
-	case EncryptTypeAES128CBC:
-		return defaultAES128CBC ,nil
-	case EncryptTypeAES128CFB:
-		return defaultAes128cfb ,nil
-	case EncryptTypePlain:
-		return defaultPlain ,nil
-	default:
-		return nil ,errors.New("unknown encrytor type")
-	}
-}
-
-func GetStreamEncryptorIndexByName(name string) int{
+func GetStreamEncryptorIndexByName(name string) (int ,error){
 	switch strings.ToLower(name) {
-	case "aes128cbc":
-		return EncryptTypeAES128CBC
 	case "aes128cfb":
-		return EncryptTypeAES128CFB
+		return EncryptTypeAES128CFB ,nil
+	case "chacha":
+		return EncryptTypeCHACHA ,nil
 	case "plain":
-		return EncryptTypePlain
+		return EncryptTypePlain ,nil
 	default:
-		// TODO rm panic
-		panic("no such stream encryptor")
-	}
-}
-
-func GetStreamEncryptorByName(name string) (Encryptor ,error){
-	switch strings.ToLower(name) {
-	case "aes128cbc":
-		return defaultAES128CBC ,nil
-	case "aes128cfb":
-		return defaultAes128cfb ,nil
-	case "plain":
-		return defaultPlain ,nil
-	default:
-		return nil ,errors.New("unknown encrytor type")
+		return 0 ,fmt.Errorf("no such encryptor %s" ,name)
 	}
 }
 
 
-func NewStreamEncryptorByName(name ,key ,vi string) (Encryptor ,error){
-	switch strings.ToLower(name) {
-	case "aes128cbc":
-		return NewAES128CBC(key ,vi)
-	case "aes128cfb":
-		return NewAES128CFB(key)
-	case "plain":
-		return defaultPlain ,nil
-	default:
-		return nil ,errors.New("unknown encrytor type")
+type EncryptorMap struct {
+	m 	map[int]Encryptor
+	mutex sync.Mutex
+}
+
+func NewEncryptorMap() *EncryptorMap{
+	return &EncryptorMap{
+		m: make(map[int]Encryptor),
 	}
 }
 
+func (e *EncryptorMap) Get(index int) (Encryptor ,error){
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+	if en ,ok := e.m[index];!ok {
+		return nil ,errors.New("unregistered encryptor")
+	}else{
+		return en ,nil
+	}
+}
 
-// PiplineEncryptor a pipline style api is better?
-//  var dst ,src net.Conn
-//  ...
-//  ip.Copy(dst ,pip.EncryptSteam(src))
-// Deprecated it's inconvenient to handle error
-type PiplineEncryptor interface {
-	EncryptStream(in io.Reader) io.Reader
-	DecryptStream(in io.Reader) io.Reader
+func (e *EncryptorMap) Register(index int ,en Encryptor) error{
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+	if _ ,ok := e.m[index];ok {
+		return fmt.Errorf("already registered index number %d" ,index)
+	}
+	e.m[index] = en
+	return nil
 }

@@ -20,10 +20,11 @@ type Config struct {
 	Help				bool
 	EncryptType			string
 	AESKey				string
-	AESIv				string
+	ChachaKey			string
 }
 
 var config Config
+var defEncryptor encrypt.Encryptor
 
 func init(){
 	cfg := &Config{}
@@ -34,9 +35,9 @@ func init(){
 	flag.IntVar(&cfg.LogLevel ,"l" ,int(zap.InfoLevel) ,"log level(from -1 to 5)")
 	flag.IntVar(&cfg.MaxLocalConnNum ,"n" ,2048 ,"the maximum number of local connections")
 	flag.BoolVar(&cfg.Help ,"help" ,false ,"display help info")
-	flag.StringVar(&cfg.EncryptType ,"encrypt" ,"AES128CBC" ,"supported encryption methods ,following is the supported list:\n {AES128CBC|AES128CFB|PLAIN}")
+	flag.StringVar(&cfg.EncryptType ,"encrypt" ,"chacha" ,"supported encryption methods ,following is the supported list:\n {chacha|AES128CFB|PLAIN}")
 	flag.StringVar(&cfg.AESKey ,"aesKey" ,"BAby10nStAGec0at" ,"key of AES cryption")
-	flag.StringVar(&cfg.AESIv ,"aesIv" ,"j0ker_nE1_diyusi" ,"vi of AES_CBC cryption")
+	flag.StringVar(&cfg.ChachaKey ,"chachaKey" ,"srMysu9kidEsuNeIcgnOCAkes1zanEki" ,"key of Chacha20poly1305")
 	flag.Parse()
 	flag.Usage = usage
 	config = *cfg
@@ -53,14 +54,33 @@ func main(){
 		return
 	}
 	log.InitLog(zapcore.Level(config.LogLevel))
-	loadPassrule()
-	go startLocalHttpProxy()
-	en ,e := encrypt.NewStreamEncryptorByName(config.EncryptType ,config.AESKey ,config.AESIv)
-	if e != nil{
-		log.Panic(e)
-	}
 	log.Info("Use encryption " ,config.EncryptType)
-	startLocalSocksProxy(en)
+	loadPassrule()
+	setEncryptor(config)
+	go startLocalHttpProxy()
+	startLocalSocksProxy(defEncryptor)
+}
+
+
+func setEncryptor(config Config){
+	switch config.EncryptType {
+	case "aes128cfb":
+		cfb ,e := encrypt.NewAES128CFB(config.AESKey)
+		if e != nil {
+			panic(e)
+		}
+		defEncryptor = cfb
+	case "chacha":
+		cc ,e := encrypt.NewChacha20Poly1305(config.ChachaKey ,encrypt.DefaultChachaNonce ,encrypt.DefaultChachaAad)
+		if e != nil {
+			panic(e)
+		}
+		defEncryptor = cc
+	case "plain":
+		defEncryptor = &encrypt.Plain{}
+	default:
+		panic("unsupported encryption method")
+	}
 }
 
 

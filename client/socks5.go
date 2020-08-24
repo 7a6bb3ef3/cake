@@ -13,6 +13,12 @@ import (
 	"sync"
 )
 
+var bufpool *pool.BufferPool
+
+func init(){
+	bufpool = pool.NewBufPool(64 * 1024)
+}
+
 func startLocalSocksProxy(encryptor encrypt.Encryptor){
 	ls ,e := net.Listen("tcp" ,config.LocalSocksAddr)
 	if e != nil{
@@ -62,7 +68,7 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encr
 		socks5.ProxyFailed(socks5.SocksRespHostUnreachable ,cliconn)
 		return
 	case BypassTrue:
-		encryptorSelect ,_ = encrypt.GetStreamEncryptor(encrypt.EncryptTypePlain)
+		encryptorSelect = encrypt.GetTypePlain()
 		remote ,e = net.Dial("tcp" ,addr.Address())
 		if e != nil{
 			log.Errorx("dail bypassed remote addr " ,e)
@@ -93,22 +99,29 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encr
 		return
 	}
 
+
+	bufa := bufpool.Get()
+	bufb := bufpool.Get()
+	defer func() {
+		bufpool.Put(bufa)
+		bufpool.Put(bufb)
+	}()
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		upN ,e := ahoy.CopyWithEncryptFunc(remote ,cliconn ,encryptorSelect.Encrypt)
+		upN ,e := ahoy.CopyWithCryptFunc(remote ,cliconn ,encryptorSelect.Encrypt ,bufa)
 		if e != nil{
-			log.Warn("copy client request to remote server error " ,e)
+			log.Warn("proxy request -> server" ,e)
 			return
 		}
 		log.Debug(fmt.Sprintf("%s %d bit ↑" ,remote.RemoteAddr() ,upN))
 	}()
 	go func() {
 		defer wg.Done()
-		downN ,e := ahoy.CopyWithEncryptFunc(cliconn ,remote ,encryptorSelect.Decrypt)
+		downN ,e := ahoy.CopyWithCryptFunc(cliconn ,remote ,encryptorSelect.Decrypt ,bufb)
 		if e != nil{
-			log.Warn("copy server response to client error " ,e)
+			log.Warn("server resp -> client." ,e)
 			return
 		}
 		log.Debug(fmt.Sprintf("%s %d bit ↓" ,remote.RemoteAddr() ,downN))
@@ -121,8 +134,12 @@ func handshakeRemote(remote net.Conn ,proxyhost string) error{
 	if len(proxyhost) > 255 {
 		return errors.New("host addr is too long(>255)")
 	}
+	index ,e := encrypt.GetStreamEncryptorIndexByName(config.EncryptType)
+	if e != nil{
+		return e
+	}
 	req := ahoy.RemoteConnectRequest{
-		Encryption: 	byte(encrypt.GetStreamEncryptorIndexByName(config.EncryptType)),
+		Encryption: 	byte(index),
 		Command: 		ahoy.CommandConnect,
 		AccessKey:      []byte(config.RemoteAccessKey),
 		AddrLength:     byte(len(proxyhost)),

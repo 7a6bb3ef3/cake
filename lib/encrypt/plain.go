@@ -1,6 +1,10 @@
 package encrypt
 
-var defaultPlain = Plain{}
+var defaultPlain = &Plain{}
+
+func GetTypePlain() Encryptor{
+	return defaultPlain
+}
 
 type Plain struct {}
 
