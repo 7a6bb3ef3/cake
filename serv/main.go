@@ -17,8 +17,7 @@ type Config struct {
 	MaxConn			int
 	Help			bool
 
-	AESKey			string
-	ChachaKey		string
+	Key				string
 }
 
 var config Config
@@ -30,8 +29,7 @@ func init(){
 	flag.IntVar(&cfg.LogLevel ,"l" ,int(zap.InfoLevel) ,"log level(from -1 to 5)")
 	flag.IntVar(&cfg.MaxConn ,"n" ,2048 ,"the maximum number of proxy connections")
 	flag.BoolVar(&cfg.Help ,"help" ,false ,"display help info")
-	flag.StringVar(&cfg.AESKey ,"aesKey" ,"BAby10nStAGec0at" ,"key of AES series cryption")
-	flag.StringVar(&cfg.ChachaKey ,"chachaKey" ,"srMysu9kidEsuNeIcgnOCAkes1zanEki" ,"key of Chacha20poly1305")
+	flag.StringVar(&cfg.Key ,"key" ,"BAby10nStAGec0at" ,"cryption methods key")
 	flag.Parse()
 	flag.Usage = usage
 	config = *cfg
@@ -59,13 +57,13 @@ func registryEncrypt(config Config) *encrypt.EncryptorMap{
 
 	enmap.Register(encrypt.EncryptTypePlain ,&encrypt.Plain{})
 
-	cfb ,e := encrypt.NewAES128CFB(config.AESKey)
+	gcm ,e := encrypt.NewAES128GCM(config.Key)
 	if e != nil {
 		panic(e)
 	}
-	enmap.Register(encrypt.EncryptTypeAES128CFB ,cfb)
+	enmap.Register(encrypt.EncryptTypeAES128GCM ,gcm)
 
-	cc ,e := encrypt.NewChacha20Poly1305(config.ChachaKey ,encrypt.DefaultChachaNonce ,encrypt.DefaultChachaAad)
+	cc ,e := encrypt.NewChacha20Poly1305(config.Key)
 	if e != nil {
 		panic(e)
 	}

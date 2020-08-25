@@ -1,6 +1,7 @@
 package encrypt
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"strings"
@@ -8,7 +9,7 @@ import (
 )
 
 const (
-	EncryptTypeAES128CFB = iota + 1
+	EncryptTypeAES128GCM = iota + 1
 	// xchacha20poly1305
 	EncryptTypeCHACHA
 	EncryptTypePlain
@@ -25,8 +26,8 @@ type Encryptor interface {
 
 func GetStreamEncryptorIndexByName(name string) (int ,error){
 	switch strings.ToLower(name) {
-	case "aes128cfb":
-		return EncryptTypeAES128CFB ,nil
+	case "aes128gcm":
+		return EncryptTypeAES128GCM ,nil
 	case "chacha":
 		return EncryptTypeCHACHA ,nil
 	case "plain":
@@ -66,4 +67,12 @@ func (e *EncryptorMap) Register(index int ,en Encryptor) error{
 	}
 	e.m[index] = en
 	return nil
+}
+
+// retrun result[:n]
+func sha256N(s string ,n int) []byte{
+	re := sha256.Sum256([]byte(s))
+	rex := re[:]
+	// out bounds check
+	return rex[:n]
 }

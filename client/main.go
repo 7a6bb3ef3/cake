@@ -19,8 +19,7 @@ type Config struct {
 	LogLevel			int
 	Help				bool
 	EncryptType			string
-	AESKey				string
-	ChachaKey			string
+	Key					string
 }
 
 var config Config
@@ -36,8 +35,7 @@ func init(){
 	flag.IntVar(&cfg.MaxLocalConnNum ,"n" ,2048 ,"the maximum number of local connections")
 	flag.BoolVar(&cfg.Help ,"help" ,false ,"display help info")
 	flag.StringVar(&cfg.EncryptType ,"encrypt" ,"chacha" ,"supported encryption methods ,following is the supported list:\n {chacha|AES128CFB|PLAIN}")
-	flag.StringVar(&cfg.AESKey ,"aesKey" ,"BAby10nStAGec0at" ,"key of AES cryption")
-	flag.StringVar(&cfg.ChachaKey ,"chachaKey" ,"srMysu9kidEsuNeIcgnOCAkes1zanEki" ,"key of Chacha20poly1305")
+	flag.StringVar(&cfg.Key ,"key" ,"BAby10nStAGec0at" ,"cryption methods key")
 	flag.Parse()
 	flag.Usage = usage
 	config = *cfg
@@ -65,13 +63,13 @@ func main(){
 func setEncryptor(config Config){
 	switch config.EncryptType {
 	case "aes128cfb":
-		cfb ,e := encrypt.NewAES128CFB(config.AESKey)
+		cfb ,e := encrypt.NewAES128GCM(config.Key)
 		if e != nil {
 			panic(e)
 		}
 		defEncryptor = cfb
 	case "chacha":
-		cc ,e := encrypt.NewChacha20Poly1305(config.ChachaKey ,encrypt.DefaultChachaNonce ,encrypt.DefaultChachaAad)
+		cc ,e := encrypt.NewChacha20Poly1305(config.Key)
 		if e != nil {
 			panic(e)
 		}

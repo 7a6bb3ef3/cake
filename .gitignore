@@ -3,3 +3,4 @@
 *.log
 cakeserv
 cakecli
+*.exe~
