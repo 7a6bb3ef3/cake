@@ -29,7 +29,7 @@ func init(){
 	flag.IntVar(&cfg.LogLevel ,"l" ,int(zap.InfoLevel) ,"log level(from -1 to 5)")
 	flag.IntVar(&cfg.MaxConn ,"n" ,2048 ,"the maximum number of proxy connections")
 	flag.BoolVar(&cfg.Help ,"help" ,false ,"display help info")
-	flag.StringVar(&cfg.Key ,"key" ,"BAby10nStAGec0at" ,"cryption methods key")
+	flag.StringVar(&cfg.Key ,"key" ,"BAby10nStAGec0atBAby10nStAGec0at" ,"cryption methods key")
 	flag.Parse()
 	flag.Usage = usage
 	config = *cfg

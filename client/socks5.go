@@ -16,7 +16,7 @@ import (
 var bufpool *pool.BufferPool
 
 func init(){
-	bufpool = pool.NewBufPool(64 * 1024)
+	bufpool = pool.NewBufPool(32 * 1024)
 }
 
 func startLocalSocksProxy(encryptor encrypt.Encryptor){
@@ -52,7 +52,7 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encr
 		log.Errorx("parse client cmd and addr" ,e)
 		return
 	}
-	log.Debug("parse remote host -> " ,addr.Address())
+	log.Info(fmt.Sprintf("Proxy %s" ,addr.Host()))
 
 	var remote net.Conn
 	var bypass int
@@ -67,15 +67,15 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encr
 	case BypassDiscard:
 		socks5.ProxyFailed(socks5.SocksRespHostUnreachable ,cliconn)
 		return
-	case BypassTrue:
-		encryptorSelect = encrypt.GetTypePlain()
-		remote ,e = net.Dial("tcp" ,addr.Address())
-		if e != nil{
-			log.Errorx("dail bypassed remote addr " ,e)
-			socks5.ProxyFailed(socks5.SocksRespHostUnreachable ,cliconn)
-			return
-		}
-	case BypassProxy:
+	//case BypassTrue:
+		//encryptorSelect = encrypt.GetTypePlain()
+		//remote ,e = net.Dial("tcp" ,addr.Address())
+		//if e != nil{
+		//	log.Errorx("dail bypassed remote addr " ,e)
+		//	socks5.ProxyFailed(socks5.SocksRespHostUnreachable ,cliconn)
+		//	return
+		//}
+	case BypassProxy ,BypassTrue:
 		encryptorSelect = encryptor
 		remote ,e = net.Dial("tcp" ,config.RemoteExitAddr)
 		if e != nil{
@@ -99,29 +99,34 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encr
 		return
 	}
 
-
-	bufa := bufpool.Get()
-	bufb := bufpool.Get()
-	defer func() {
-		bufpool.Put(bufa)
-		bufpool.Put(bufb)
-	}()
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		upN ,e := ahoy.CopyWithCryptFunc(remote ,cliconn ,encryptorSelect.Encrypt ,bufa)
+		cfg := &ahoy.CopyConfig{
+			ReaderWithLength: false,
+			WriterNeedLength: true,
+			CryptFunc:        encryptorSelect.Encrypt,
+			BufPool:          bufpool,
+		}
+		upN ,e := ahoy.CopyConn(remote ,cliconn ,cfg)
 		if e != nil{
-			log.Warn("proxy request -> server" ,e)
+			log.Warn("proxy request." ,e)
 			return
 		}
 		log.Debug(fmt.Sprintf("%s %d bit ↑" ,remote.RemoteAddr() ,upN))
 	}()
 	go func() {
 		defer wg.Done()
-		downN ,e := ahoy.CopyWithCryptFunc(cliconn ,remote ,encryptorSelect.Decrypt ,bufb)
+		cfg := &ahoy.CopyConfig{
+			ReaderWithLength: true,
+			WriterNeedLength: false,
+			CryptFunc:        encryptorSelect.Decrypt,
+			BufPool:          bufpool,
+		}
+		downN ,e := ahoy.CopyConn(cliconn ,remote ,cfg)
 		if e != nil{
-			log.Warn("server resp -> client." ,e)
+			log.Warn("server resp." ,e)
 			return
 		}
 		log.Debug(fmt.Sprintf("%s %d bit ↓" ,remote.RemoteAddr() ,downN))

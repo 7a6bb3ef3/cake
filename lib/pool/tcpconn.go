@@ -27,7 +27,6 @@ type TcpConnPool struct {
 func (p *TcpConnPool)GetLocalTcpConn() net.Conn{
 	select{
 	case p.localTks <- struct{}{}:
-		log.Debug("get conn -> " ,len(p.localTks))
 		conn ,ok := p.localTcpPool.Get().(*net.TCPConn)
 		if !ok {
 			return p.localTcpPool.New().(net.Conn)

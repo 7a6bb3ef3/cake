@@ -13,7 +13,7 @@ import (
 var bufpool *pool.BufferPool
 
 func init(){
-	bufpool = pool.NewBufPool(64 * 1024)
+	bufpool = pool.NewBufPool(32 * 1024)
 }
 
 func startProxyServ(enmap *encrypt.EncryptorMap) {
@@ -67,17 +67,24 @@ func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *encrypt.Encrypt
 		return
 	}
 
-	bufa := bufpool.Get()
-	bufb := bufpool.Get()
-	defer func() {
-		bufpool.Put(bufa)
-		bufpool.Put(bufb)
-	}()
+	//bufa := bufpool.Get()
+	//bufb := bufpool.Get()
+	//defer func() {
+	//	bufpool.Put(bufa)
+	//	bufpool.Put(bufb)
+	//}()
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		upN ,e := ahoy.CopyWithCryptFunc(outConn ,fromsocks ,encryptor.Decrypt ,bufa)
+		cfg := &ahoy.CopyConfig{
+			ReaderWithLength: false,
+			WriterNeedLength: true,
+			CryptFunc:        encryptor.Encrypt,
+			BufPool:          bufpool,
+		}
+		upN ,e := ahoy.CopyConn(fromsocks ,outConn ,cfg)
+		//upN ,e := ahoy.CopyWithCryptFunc(outConn ,fromsocks ,encryptor.Decrypt ,bufa)
 		if e != nil{
 			log.Warn("proxy request -> server." ,e)
 			return
@@ -88,7 +95,14 @@ func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *encrypt.Encrypt
 
 	go func() {
 		defer wg.Done()
-		downN ,e := ahoy.CopyWithCryptFunc(fromsocks ,outConn ,encryptor.Encrypt ,bufb)
+		cfg := &ahoy.CopyConfig{
+			ReaderWithLength: true,
+			WriterNeedLength: false,
+			CryptFunc:        encryptor.Decrypt,
+			BufPool:          bufpool,
+		}
+		downN ,e := ahoy.CopyConn(outConn ,fromsocks ,cfg)
+		//downN ,e := ahoy.CopyWithCryptFunc(fromsocks ,outConn ,encryptor.Encrypt ,bufb)
 		if e != nil{
 			log.Warn("server resp -> client. " ,e)
 			return
