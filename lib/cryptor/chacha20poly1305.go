@@ -1,8 +1,9 @@
-package encrypt
+package cryptor
 
 import (
 	"crypto/cipher"
 	"fmt"
+
 	chacha "golang.org/x/crypto/chacha20poly1305"
 )
 
@@ -12,10 +13,10 @@ type Chacha20Poly1305 struct {
 	aead    cipher.AEAD
 }
 
-func NewChacha20Poly1305(key string) (*Chacha20Poly1305 ,error) {
+func NewChacha20Poly1305(key string) (Cryptor ,error) {
 	nonce := sha256N(key ,24)
 	if len(key) != 32  {
-		return nil ,fmt.Errorf("encrypt.NewChacha20Poly1305 params error(key %s ,nonce %s)" ,key ,nonce)
+		return nil ,fmt.Errorf("cryptor.NewChacha20Poly1305 params error(key %s ,nonce %s)" ,key ,nonce)
 	}
 	aead ,e := chacha.NewX([]byte(key))
 	if e != nil{

@@ -4,22 +4,26 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/nynicg/cake/lib/encrypt"
+	"github.com/nynicg/cake/lib/cryptor"
 	"github.com/nynicg/cake/lib/log"
 	"github.com/nynicg/cake/lib/pool"
 )
 
-type CopyConfig struct {
-	ReaderWithLength		bool
-	WriterNeedLength		bool
-	CryptFunc       		encrypt.EncryptFunc
-	BufPool 				*pool.BufferPool
+type CopyEnv struct {
+	ReaderWithLength bool
+	WriterNeedLength bool
+	CryptFunc        cryptor.CryptFunc
+	BufPool          *pool.BufferPool
+	Bypass           bool
 }
 
-func CopyConn(dst io.Writer ,src io.Reader ,cfg *CopyConfig) (int ,error){
+func CopyConn(dst io.Writer ,src io.Reader ,cfg *CopyEnv) (int ,error){
 	buf := cfg.BufPool.Get()
 	defer cfg.BufPool.Put(buf)
-
+	if cfg.Bypass {
+		cfg.ReaderWithLength = false
+		cfg.WriterNeedLength = false
+	}
 	var (
 		written int
 		err error

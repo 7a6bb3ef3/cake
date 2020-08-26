@@ -1,4 +1,4 @@
-package encrypt
+package cryptor
 
 import (
 	"crypto/aes"
@@ -13,7 +13,7 @@ type AES128GCM struct {
 }
 
 // non-hex key and nonce
-func NewAES128GCM(key string) (Encryptor ,error){
+func NewAES128GCM(key string) (Cryptor ,error){
 	nonce := sha256N(key ,12)
 	if len(key) != 32 || len(nonce) != 12 {
 		return nil ,errors.New("unexpected length of key or nonce")

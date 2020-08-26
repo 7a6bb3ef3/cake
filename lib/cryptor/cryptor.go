@@ -1,4 +1,4 @@
-package encrypt
+package cryptor
 
 import (
 	"crypto/sha256"
@@ -9,47 +9,53 @@ import (
 )
 
 const (
-	EncryptTypeAES128GCM = iota + 1
+	CryptTypeAES128GCM = iota + 1
 	// xchacha20poly1305
-	EncryptTypeCHACHA
-	EncryptTypePlain
+	CryptTypeCHACHA
+	CryptTypePlain
 )
 
-// EncryptFunc both encryption or decryption func is ok
-type EncryptFunc func(in []byte) (out []byte ,e error)
+const (
+	NameAES128GCM = "aes128gcm"
+	NameCHACHA = "chacha"
+	NamePlain = "plain"
+)
 
-// StreamEncryptor used to encrypt communication in net.conn.
-type Encryptor interface {
+// both encryption or decryption func is ok
+type CryptFunc func(in []byte) (out []byte ,e error)
+
+// StreamEncryptor used to cryptor communication in net.conn.
+type Cryptor interface {
 	Encrypt(in []byte) (out []byte ,err error)
 	Decrypt(in []byte) (out []byte ,err error)
 }
 
 func GetStreamEncryptorIndexByName(name string) (int ,error){
 	switch strings.ToLower(name) {
-	case "aes128gcm":
-		return EncryptTypeAES128GCM ,nil
-	case "chacha":
-		return EncryptTypeCHACHA ,nil
-	case "plain":
-		return EncryptTypePlain ,nil
+	case NameAES128GCM:
+		return CryptTypeAES128GCM ,nil
+	case NameCHACHA:
+		return CryptTypeCHACHA ,nil
+	case NamePlain:
+		return CryptTypePlain ,nil
 	default:
 		return 0 ,fmt.Errorf("no such encryptor %s" ,name)
 	}
 }
 
 
-type EncryptorMap struct {
-	m 	map[int]Encryptor
+type CryptorMap struct {
+	m 	map[int]Cryptor
 	mutex sync.Mutex
 }
 
-func NewEncryptorMap() *EncryptorMap{
-	return &EncryptorMap{
-		m: make(map[int]Encryptor),
+func NewEncryptorMap() *CryptorMap{
+	return &CryptorMap{
+		m: make(map[int]Cryptor),
 	}
 }
 
-func (e *EncryptorMap) Get(index int) (Encryptor ,error){
+func (e *CryptorMap) Get(index int) (Cryptor ,error){
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 	if en ,ok := e.m[index];!ok {
@@ -59,7 +65,7 @@ func (e *EncryptorMap) Get(index int) (Encryptor ,error){
 	}
 }
 
-func (e *EncryptorMap) Register(index int ,en Encryptor) error{
+func (e *CryptorMap) Register(index int ,en Cryptor) error{
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 	if _ ,ok := e.m[index];ok {

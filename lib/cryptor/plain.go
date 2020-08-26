@@ -1,8 +1,8 @@
-package encrypt
+package cryptor
 
 var defaultPlain = &Plain{}
 
-func GetTypePlain() Encryptor{
+func GetTypePlain() Cryptor{
 	return defaultPlain
 }
 

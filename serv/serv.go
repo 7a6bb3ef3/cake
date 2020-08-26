@@ -1,13 +1,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"github.com/nynicg/cake/lib/ahoy"
-	"github.com/nynicg/cake/lib/encrypt"
-	"github.com/nynicg/cake/lib/log"
-	"github.com/nynicg/cake/lib/pool"
+	"io"
 	"net"
 	"sync"
+
+	"github.com/nynicg/cake/lib/ahoy"
+	"github.com/nynicg/cake/lib/cryptor"
+	"github.com/nynicg/cake/lib/log"
+	"github.com/nynicg/cake/lib/pool"
 )
 
 var bufpool *pool.BufferPool
@@ -16,7 +19,7 @@ func init(){
 	bufpool = pool.NewBufPool(32 * 1024)
 }
 
-func startProxyServ(enmap *encrypt.EncryptorMap) {
+func startProxyServ(enmap *cryptor.CryptorMap) {
 	ls ,e := net.Listen("tcp" ,config.LocalAddr)
 	if e != nil {
 		log.Panic(e)
@@ -34,21 +37,20 @@ func startProxyServ(enmap *encrypt.EncryptorMap) {
 	}
 }
 
-func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *encrypt.EncryptorMap){
+func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *cryptor.CryptorMap){
 	log.Debug("handle conn from " ,fromsocks.RemoteAddr())
 	defer func() {
 		fromsocks.Close()
 		pl.FreeLocalTcpConn(fromsocks)
 	}()
 	fromsocks.(*net.TCPConn).SetKeepAlive(false)
-	encryptType ,addr ,e := ahoy.Handshake(config.AccessKey ,fromsocks)
+	cryptType ,addr ,e := handshake(config.AccessKey ,fromsocks)
 	if e != nil{
 		log.Errorx("handshake " ,e)
 		return
 	}
-	log.Debug("got encrypt type " ,encryptType)
-	//encryptor ,e := encrypt.GetStreamEncryptor(encryptType)
-	encryptor ,e := enmap.Get(encryptType)
+	log.Debug("got cryptor type " ,cryptType)
+	crypt ,e := enmap.Get(cryptType)
 	if e != nil{
 		log.Errorx("get stream encryptor " ,e)
 		return
@@ -61,55 +63,80 @@ func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *encrypt.Encrypt
 	}
 	defer outConn.Close()
 	outConn.(*net.TCPConn).SetKeepAlive(false)
-	// ready to mathx
-	if e := ahoy.OnReady(fromsocks);e != nil{
+	if e := onReady(fromsocks);e != nil{
 		log.Errorx("done handshake " + addr ,e)
 		return
 	}
 
-	//bufa := bufpool.Get()
-	//bufb := bufpool.Get()
-	//defer func() {
-	//	bufpool.Put(bufa)
-	//	bufpool.Put(bufb)
-	//}()
+	inboundEnv := &ahoy.CopyEnv{
+		ReaderWithLength: false,
+		WriterNeedLength: true,
+		CryptFunc:        crypt.Encrypt,
+		BufPool:          bufpool,
+	}
+	outboundEnv := &ahoy.CopyEnv{
+		ReaderWithLength: true,
+		WriterNeedLength: false,
+		CryptFunc:        crypt.Decrypt,
+		BufPool:          bufpool,
+	}
+	var (
+		up int
+		down int
+	)
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		cfg := &ahoy.CopyConfig{
-			ReaderWithLength: false,
-			WriterNeedLength: true,
-			CryptFunc:        encryptor.Encrypt,
-			BufPool:          bufpool,
-		}
-		upN ,e := ahoy.CopyConn(fromsocks ,outConn ,cfg)
-		//upN ,e := ahoy.CopyWithCryptFunc(outConn ,fromsocks ,encryptor.Decrypt ,bufa)
+		upN ,e := ahoy.CopyConn(fromsocks ,outConn ,inboundEnv)
 		if e != nil{
 			log.Warn("proxy request -> server." ,e)
 			return
 		}
-		log.Debug(fmt.Sprintf("%s %d bit ↑" ,outConn.RemoteAddr() ,upN))
-
+		up = upN
 	}()
 
 	go func() {
 		defer wg.Done()
-		cfg := &ahoy.CopyConfig{
-			ReaderWithLength: true,
-			WriterNeedLength: false,
-			CryptFunc:        encryptor.Decrypt,
-			BufPool:          bufpool,
-		}
-		downN ,e := ahoy.CopyConn(outConn ,fromsocks ,cfg)
-		//downN ,e := ahoy.CopyWithCryptFunc(fromsocks ,outConn ,encryptor.Encrypt ,bufb)
+		downN ,e := ahoy.CopyConn(outConn ,fromsocks ,outboundEnv)
 		if e != nil{
 			log.Warn("server resp -> client. " ,e)
 			return
 		}
-		log.Debug(fmt.Sprintf("%s %d bit ↓" ,outConn.RemoteAddr() ,downN))
+		down = downN
 	}()
 	wg.Wait()
+	log.Info(fmt.Sprintf("%s ,%d ↑ ,%d ↓ bytes" ,addr ,up ,down))
+}
+
+// use a customer protocol ,for experiment
+// return encryption type ,proxy address and an error if there is
+func handshake(ackey string ,fromsocks net.Conn) (int ,string ,error){
+	buf := bufpool.Get()
+	defer bufpool.Put(buf)
+	if _ ,e := io.ReadFull(fromsocks ,buf[:19]);e != nil{
+		return 0 ,"" ,e
+	}
+	log.Debug("handshake pack " ,buf[:19])
+	addrLen := buf[18]
+	enctype := buf[0]
+	if buf[1] != byte(ahoy.CommandConnect) {
+		return 0 ,"" ,errors.New("unsupport command")
+	}else if string(buf[2:18]) != ackey {
+		return 0 ,"" ,errors.New("access refused")
+	}else if addrLen == 0{
+		return 0 ,"" ,errors.New("empty proxy addr")
+	}
+	// read addr
+	if _ ,e := io.ReadFull(fromsocks ,buf[:addrLen]);e != nil{
+		return 0 ,"" ,e
+	}
+	return int(enctype) ,string(buf[:addrLen]) ,nil
+}
+
+func onReady(w io.Writer) error{
+	_ ,e := w.Write([]byte{1 ,1 ,4 ,5 ,1 ,4})
+	return e
 }
 
 

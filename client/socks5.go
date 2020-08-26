@@ -3,14 +3,15 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/nynicg/cake/lib/ahoy"
-	"github.com/nynicg/cake/lib/encrypt"
-	"github.com/nynicg/cake/lib/log"
-	"github.com/nynicg/cake/lib/pool"
-	"github.com/nynicg/cake/lib/socks5"
 	"io"
 	"net"
 	"sync"
+
+	"github.com/nynicg/cake/lib/ahoy"
+	"github.com/nynicg/cake/lib/cryptor"
+	"github.com/nynicg/cake/lib/log"
+	"github.com/nynicg/cake/lib/pool"
+	"github.com/nynicg/cake/lib/socks5"
 )
 
 var bufpool *pool.BufferPool
@@ -19,7 +20,7 @@ func init(){
 	bufpool = pool.NewBufPool(32 * 1024)
 }
 
-func startLocalSocksProxy(encryptor encrypt.Encryptor){
+func startLocalSocksProxy(encryptor cryptor.Cryptor){
 	ls ,e := net.Listen("tcp" ,config.LocalSocksAddr)
 	if e != nil{
 		log.Panic(e)
@@ -37,7 +38,7 @@ func startLocalSocksProxy(encryptor encrypt.Encryptor){
 	}
 }
 
-func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encryptor){
+func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor cryptor.Cryptor){
 	defer func() {
 		cliconn.Close()
 		pl.FreeLocalTcpConn(cliconn)
@@ -52,7 +53,6 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encr
 		log.Errorx("parse client cmd and addr" ,e)
 		return
 	}
-	log.Info(fmt.Sprintf("Proxy %s" ,addr.Host()))
 
 	var remote net.Conn
 	var bypass int
@@ -62,21 +62,21 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encr
 		bypass = Bypass(addr.Host())
 		PutDomainCache(addr.Host() ,bypass)
 	}
-	var encryptorSelect encrypt.Encryptor
+	var cryptorSelect cryptor.Cryptor
 	switch bypass {
 	case BypassDiscard:
 		socks5.ProxyFailed(socks5.SocksRespHostUnreachable ,cliconn)
 		return
-	//case BypassTrue:
-		//encryptorSelect = encrypt.GetTypePlain()
-		//remote ,e = net.Dial("tcp" ,addr.Address())
-		//if e != nil{
-		//	log.Errorx("dail bypassed remote addr " ,e)
-		//	socks5.ProxyFailed(socks5.SocksRespHostUnreachable ,cliconn)
-		//	return
-		//}
-	case BypassProxy ,BypassTrue:
-		encryptorSelect = encryptor
+	case BypassTrue:
+		cryptorSelect = cryptor.GetTypePlain()
+		remote ,e = net.Dial("tcp" ,addr.Address())
+		if e != nil{
+			log.Errorx("dail bypassed remote addr " ,e)
+			socks5.ProxyFailed(socks5.SocksRespHostUnreachable ,cliconn)
+			return
+		}
+	case BypassProxy:
+		cryptorSelect = encryptor
 		remote ,e = net.Dial("tcp" ,config.RemoteExitAddr)
 		if e != nil{
 			log.Errorx("dail remote exit " ,e)
@@ -99,39 +99,45 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor encrypt.Encr
 		return
 	}
 
+	outboundEnv := &ahoy.CopyEnv{
+		ReaderWithLength: false,
+		WriterNeedLength: true,
+		CryptFunc:        cryptorSelect.Encrypt,
+		BufPool:          bufpool,
+		Bypass:			  bypass == BypassTrue,
+	}
+	inboundEnv := &ahoy.CopyEnv{
+		ReaderWithLength: true,
+		WriterNeedLength: false,
+		CryptFunc:        cryptorSelect.Decrypt,
+		BufPool:          bufpool,
+		Bypass:			  bypass == BypassTrue,
+	}
+
+	var(
+		up int
+		down int
+	)
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		cfg := &ahoy.CopyConfig{
-			ReaderWithLength: false,
-			WriterNeedLength: true,
-			CryptFunc:        encryptorSelect.Encrypt,
-			BufPool:          bufpool,
-		}
-		upN ,e := ahoy.CopyConn(remote ,cliconn ,cfg)
+		up ,e = ahoy.CopyConn(remote ,cliconn ,outboundEnv)
 		if e != nil{
 			log.Warn("proxy request." ,e)
 			return
 		}
-		log.Debug(fmt.Sprintf("%s %d bit ↑" ,remote.RemoteAddr() ,upN))
 	}()
 	go func() {
 		defer wg.Done()
-		cfg := &ahoy.CopyConfig{
-			ReaderWithLength: true,
-			WriterNeedLength: false,
-			CryptFunc:        encryptorSelect.Decrypt,
-			BufPool:          bufpool,
-		}
-		downN ,e := ahoy.CopyConn(cliconn ,remote ,cfg)
+		down ,e = ahoy.CopyConn(cliconn ,remote ,inboundEnv)
 		if e != nil{
 			log.Warn("server resp." ,e)
 			return
 		}
-		log.Debug(fmt.Sprintf("%s %d bit ↓" ,remote.RemoteAddr() ,downN))
 	}()
 	wg.Wait()
+	log.Info(fmt.Sprintf("%s ,%d ↑ ,%d ↓ bytes" ,addr.Host() ,up ,down))
 }
 
 
@@ -139,7 +145,7 @@ func handshakeRemote(remote net.Conn ,proxyhost string) error{
 	if len(proxyhost) > 255 {
 		return errors.New("host addr is too long(>255)")
 	}
-	index ,e := encrypt.GetStreamEncryptorIndexByName(config.EncryptType)
+	index ,e := cryptor.GetStreamEncryptorIndexByName(config.EncryptType)
 	if e != nil{
 		return e
 	}

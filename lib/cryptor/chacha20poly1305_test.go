@@ -1,4 +1,4 @@
-package encrypt
+package cryptor
 
 import (
 	"encoding/hex"
@@ -25,7 +25,7 @@ func TestChacha20Poly1305_Encrypt(t *testing.T) {
 		out ,e := cha.Encrypt(inb)
 		t.Logf("len in %d ,len out %d" ,len(inb) ,len(out))
 		if e != nil{
-			t.Errorf("encrypt %s %s" ,v ,e)
+			t.Errorf("cryptor %s %s" ,v ,e)
 			continue
 		}
 		plain ,e := cha.Decrypt(out)

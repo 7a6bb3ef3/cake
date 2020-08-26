@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/nynicg/cake/lib/encrypt"
+	"os"
+
+	"github.com/nynicg/cake/lib/cryptor"
 	"github.com/nynicg/cake/lib/log"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 )
 
 type Config struct {
@@ -52,21 +53,21 @@ func main(){
 
 
 
-func registryEncrypt(config Config) *encrypt.EncryptorMap{
-	enmap := encrypt.NewEncryptorMap()
+func registryEncrypt(config Config) *cryptor.CryptorMap{
+	enmap := cryptor.NewEncryptorMap()
 
-	enmap.Register(encrypt.EncryptTypePlain ,&encrypt.Plain{})
+	enmap.Register(cryptor.CryptTypePlain ,&cryptor.Plain{})
 
-	gcm ,e := encrypt.NewAES128GCM(config.Key)
+	gcm ,e := cryptor.NewAES128GCM(config.Key)
 	if e != nil {
 		panic(e)
 	}
-	enmap.Register(encrypt.EncryptTypeAES128GCM ,gcm)
+	enmap.Register(cryptor.CryptTypeAES128GCM ,gcm)
 
-	cc ,e := encrypt.NewChacha20Poly1305(config.Key)
+	cc ,e := cryptor.NewChacha20Poly1305(config.Key)
 	if e != nil {
 		panic(e)
 	}
-	enmap.Register(encrypt.EncryptTypeCHACHA ,cc)
+	enmap.Register(cryptor.CryptTypeCHACHA ,cc)
 	return enmap
 }
