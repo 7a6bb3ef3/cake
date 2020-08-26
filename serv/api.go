@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/nynicg/cake/lib/ahoy"
 	"net/http"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/nynicg/cake/lib/ahoy"
 	"github.com/nynicg/cake/lib/log"
 )
 
@@ -20,6 +20,7 @@ func runApiServ(){
 	}
 }
 
+// https://github.com/julienschmidt/httprouter basicAuth demo
 func BasicAuth(h httprouter.Handle, requiredUser, requiredPassword string) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Get the Basic Authentication credentials
@@ -39,7 +40,7 @@ func BasicAuth(h httprouter.Handle, requiredUser, requiredPassword string) httpr
 func Register(w http.ResponseWriter,r *http.Request ,params httprouter.Params){
 	uid := params.ByName("uid")
 	cmds ,e := strconv.Atoi(params.ByName("cmd"))
-	if e != nil{
+	if e != nil || cmds < 0 || cmds > 255{
 		w.Write([]byte("error.param CMD only accept integer. range [0,255]"))
 		return
 	}

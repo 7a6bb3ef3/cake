@@ -3,9 +3,10 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"sync"
+
 	"github.com/nynicg/cake/lib/ahoy"
 	"github.com/nynicg/cake/lib/cryptor"
-	"sync"
 )
 
 // map[hmac_hex]uid
