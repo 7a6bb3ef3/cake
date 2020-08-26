@@ -14,9 +14,11 @@ import (
 )
 
 var bufpool *pool.BufferPool
+var proxyStat *ProxyStat
 
 func init(){
 	bufpool = pool.NewBufPool(32 * 1024)
+	proxyStat = &ProxyStat{}
 }
 
 func runProxyServ(enmap *cryptor.CryptorMap) {
@@ -89,24 +91,27 @@ func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *cryptor.Cryptor
 	go func() {
 		defer wg.Done()
 		downN ,e := ahoy.CopyConn(fromsocks ,outConn ,inboundEnv)
+		down = downN
 		if e != nil{
-			log.Warn("proxy request -> server." ,e)
+			log.Warn(addr ," server resp." ,e)
 			return
 		}
-		down = downN
 	}()
 
 	go func() {
-		defer wg.Done()
+		defer func() {
+			wg.Done()
+			outConn.(*net.TCPConn).CloseWrite()
+		}()
 		upN ,e := ahoy.CopyConn(outConn ,fromsocks ,outboundEnv)
+		up = upN
 		if e != nil{
-			log.Warn("server resp -> client. " ,e)
+			log.Warn(addr ," client request. " ,e)
 			return
 		}
-		up = upN
 	}()
 	wg.Wait()
-	log.Info(fmt.Sprintf("%s ,%d ↑ ,%d ↓ bytes" ,addr ,up ,down))
+	onFinish(up ,down ,addr)
 }
 
 // use a customer protocol ,for experiment
@@ -137,6 +142,11 @@ func handshake(fromsocks net.Conn) (int ,string ,error){
 func onReady(w io.Writer) error{
 	_ ,e := w.Write([]byte{1 ,1 ,4 ,5 ,1 ,4})
 	return e
+}
+
+func onFinish(up ,down int ,addr string){
+	log.Debug(fmt.Sprintf("%s ,%d ↑ ,%d ↓ bytes" ,addr ,up ,down))
+	proxyStat.Add(up ,down)
 }
 
 

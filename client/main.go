@@ -55,9 +55,8 @@ func main(){
 	log.Info("Use cryptor " ,config.EncryptType)
 	loadPassrule()
 	cpt := getCryptor(config)
-	hc := cryptor.NewHMAC(config.Uid)
 	go startLocalHttpProxy()
-	startLocalSocksProxy(cpt ,hc)
+	startLocalSocksProxy(cpt)
 }
 
 

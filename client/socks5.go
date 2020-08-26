@@ -20,7 +20,7 @@ func init(){
 	bufpool = pool.NewBufPool(32 * 1024)
 }
 
-func startLocalSocksProxy(encryptor cryptor.Cryptor ,hc *cryptor.HMAC){
+func startLocalSocksProxy(encryptor cryptor.Cryptor){
 	ls ,e := net.Listen("tcp" ,config.LocalSocksAddr)
 	if e != nil{
 		log.Panic(e)
@@ -34,11 +34,11 @@ func startLocalSocksProxy(encryptor cryptor.Cryptor ,hc *cryptor.HMAC){
 			log.Errorx("accept new client conn " ,e)
 			continue
 		}
-		go handleCliConn(cliconn ,pl ,encryptor ,hc)
+		go handleCliConn(cliconn ,pl ,encryptor)
 	}
 }
 
-func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,cpt cryptor.Cryptor ,hc *cryptor.HMAC){
+func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,cpt cryptor.Cryptor){
 	defer func() {
 		cliconn.Close()
 		pl.FreeLocalTcpConn(cliconn)
@@ -55,13 +55,7 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,cpt cryptor.Cryptor ,h
 	}
 
 	var remote net.Conn
-	var bypass int
-	if i ,ok := GetDomainCache(addr.Host());ok{
-		bypass = i
-	}else{
-		bypass = Bypass(addr.Host())
-		PutDomainCache(addr.Host() ,bypass)
-	}
+	bypass := Bypass(addr.Host())
 	var cryptorSelect cryptor.Cryptor
 	switch bypass {
 	case BypassDiscard:
@@ -83,7 +77,7 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,cpt cryptor.Cryptor ,h
 			socks5.ProxyFailed(socks5.SocksRespServErr ,cliconn)
 			return
 		}
-		if e := handshakeRemote(remote ,addr.Address() ,hc);e != nil{
+		if e := handshakeRemote(remote ,addr.Address());e != nil{
 			log.Errorx("handshake with remote failed " ,e)
 			socks5.ProxyFailed(socks5.SocksRespServErr ,cliconn)
 			return
@@ -121,27 +115,31 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,cpt cryptor.Cryptor ,h
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
-		defer wg.Done()
-		up ,e = ahoy.CopyConn(remote ,cliconn ,outboundEnv)
+		defer func() {
+			wg.Done()
+			remote.(*net.TCPConn).CloseWrite()
+		}()
+		upn ,e := ahoy.CopyConn(remote ,cliconn ,outboundEnv)
+		up = upn
 		if e != nil{
-			log.Warn("proxy request." ,e)
+			log.Warn(addr.Address() ," client request." ,e)
 			return
 		}
 	}()
 	go func() {
 		defer wg.Done()
-		down ,e = ahoy.CopyConn(cliconn ,remote ,inboundEnv)
+		downn ,e := ahoy.CopyConn(cliconn ,remote ,inboundEnv)
+		down = downn
 		if e != nil{
-			log.Warn("server resp." ,e)
+			log.Warn(addr.Address() ," server resp." ,e)
 			return
 		}
 	}()
 	wg.Wait()
-	log.Info(fmt.Sprintf("%s ,%d ↑ ,%d ↓ bytes" ,addr.Host() ,up ,down))
+	onFinish(up ,down ,addr.Host())
 }
 
-
-func handshakeRemote(remote net.Conn ,proxyhost string ,hc *cryptor.HMAC) error{
+func handshakeRemote(remote net.Conn ,proxyhost string) error{
 	if len(proxyhost) > 255 {
 		return errors.New("host addr is too long(>255)")
 	}
@@ -149,7 +147,7 @@ func handshakeRemote(remote net.Conn ,proxyhost string ,hc *cryptor.HMAC) error{
 	if e != nil{
 		return e
 	}
-	hcCip ,e := hc.SumAhoyHandshake(byte(ahoy.CommandConnect) ,config.Uid ,ahoy.HMACLength)
+	hcCip ,e := cryptor.SumAhoyHandshake(byte(ahoy.CommandConnect) ,config.Uid ,ahoy.HMACLength)
 	if e != nil{
 		return fmt.Errorf("hamc.sumN in handshake.%w" ,e)
 	}
@@ -174,3 +172,8 @@ func handshakeRemote(remote net.Conn ,proxyhost string ,hc *cryptor.HMAC) error{
 	}
 	return nil
 }
+
+func onFinish(up ,down int ,addr string){
+	log.Debug(fmt.Sprintf("%s ,%d ↑ ,%d ↓ bytes" ,addr ,up ,down))
+}
+

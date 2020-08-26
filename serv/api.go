@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/nynicg/cake/lib/ahoy"
@@ -10,27 +12,30 @@ import (
 )
 
 func runApiServ(){
+	if !config.EnableAPI{
+		return
+	}
 	router := httprouter.New()
-	router.GET("/register/:uid/:cmd", BasicAuth(Register ,"114514" ,"114514"))
-	//router.POST("/register/:uid/:cmd", BasicAuth(Register ,"114514" ,"114514"))
+	router.GET("/register/:uid/:cmd", wrap(Register))
+	router.GET("/stat" ,wrap(Stat))
 
-	log.Info("API service listen on " ,config.LocalApi)
-	if e := http.ListenAndServe(config.LocalApi, router);e != nil{
+	log.Info("API service listen on " ,config.LocalApiAddr)
+	if e := http.ListenAndServe(config.LocalApiAddr, router);e != nil{
 		log.Errorx("api service has crashed." ,e)
 	}
 }
 
-// https://github.com/julienschmidt/httprouter basicAuth demo
-func BasicAuth(h httprouter.Handle, requiredUser, requiredPassword string) httprouter.Handle {
+func wrap(h httprouter.Handle) httprouter.Handle{
+	return BasicAuth(h ,config.BAUserName ,config.BAPassword)
+}
+
+func BasicAuth(h httprouter.Handle, usr, pwd string) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		// Get the Basic Authentication credentials
 		user, password, hasAuth := r.BasicAuth()
 
-		if hasAuth && user == requiredUser && password == requiredPassword {
-			// Delegate request to the given handle
+		if hasAuth && user == usr && password == pwd {
 			h(w, r, ps)
 		} else {
-			// Request Basic Authentication otherwise
 			w.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		}
@@ -46,4 +51,27 @@ func Register(w http.ResponseWriter,r *http.Request ,params httprouter.Params){
 	}
 	RegisterUidCmd(ahoy.Command(cmds) ,uid)
 	w.Write([]byte("ok"))
+}
+
+type ProxyStat struct {
+	TotalUp		int64
+	TotalDown	int64
+}
+
+func (p *ProxyStat) Add(up ,down int){
+	atomic.AddInt64(&p.TotalUp ,int64(up))
+	atomic.AddInt64(&p.TotalDown ,int64(down))
+}
+
+func Stat(w http.ResponseWriter,r *http.Request ,params httprouter.Params){
+	p := *proxyStat
+	bts ,e := json.Marshal(&p)
+	if e != nil{
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("server internal error, check the lastest error log"))
+		log.Error("api service." ,e)
+		return
+	}
+	w.Header().Set("Content-Type" ,"application/json;charset=UTF-8")
+	w.Write(bts)
 }

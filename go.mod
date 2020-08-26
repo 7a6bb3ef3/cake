@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/elazarl/goproxy v0.0.0-20200809112317-0581fc3aee2d
+	github.com/google/uuid v1.1.1
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/pkg/errors v0.8.1
 	go.uber.org/zap v1.15.0

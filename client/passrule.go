@@ -113,18 +113,26 @@ const (
 )
 // Bypass 0:proxy ,1:bypass ,2:discard
 func Bypass(dm string) int{
+	i ,ok := GetDomainCache(dm)
+	if ok {
+		return i
+	}
 
 	for _ ,v := range domainlist.Bypass{
 		if strings.HasSuffix(dm ,v) {
+			PutDomainCache(dm ,BypassTrue)
 			return BypassTrue
 		}
 	}
 
 	for _ ,v := range domainlist.Discard{
 		if strings.HasSuffix(dm ,v){
+			PutDomainCache(dm ,BypassDiscard)
 			return BypassDiscard
 		}
 	}
+
+	PutDomainCache(dm ,BypassProxy)
 	return BypassProxy
 }
 

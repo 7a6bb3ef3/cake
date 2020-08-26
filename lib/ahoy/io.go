@@ -1,12 +1,12 @@
 package ahoy
 
 import (
+	"errors"
 	"fmt"
-	"io"
-
 	"github.com/nynicg/cake/lib/cryptor"
 	"github.com/nynicg/cake/lib/log"
 	"github.com/nynicg/cake/lib/pool"
+	"io"
 )
 
 type CopyEnv struct {
@@ -16,6 +16,7 @@ type CopyEnv struct {
 	BufPool          *pool.BufferPool
 	Bypass           bool
 }
+
 
 func CopyConn(dst io.Writer ,src io.Reader ,cfg *CopyEnv) (int ,error){
 	buf := cfg.BufPool.Get()
@@ -28,39 +29,39 @@ func CopyConn(dst io.Writer ,src io.Reader ,cfg *CopyEnv) (int ,error){
 		written int
 		err error
 		srcpayload []byte
-		eof bool
 	)
 	for {
 		if !cfg.ReaderWithLength{
 			nr, er := src.Read(buf)
-			if er != nil && er != io.EOF {
-				err = er
-				break
-			}else if er == io.EOF{
-				eof = true
-			}
+			err = er
 			srcpayload = buf[:nr]
-			log.Debug("read no head pack -> " ,nr ," bits")
 		}else{
 			d ,e := readWithLength(src)
-			if e != nil{
-				err = e
-				break
-			}
+			err = e
 			srcpayload = d
 		}
+		if err != nil && !errors.Is(err ,io.EOF){
+			break
+		}
+		// no more payload to handle
+		if errors.Is(err ,io.EOF) && len(srcpayload) == 0 {
+			err = nil
+			break
+		}
+		// got EOF and some payload ,or no error here
 		towrite ,e := cfg.CryptFunc(srcpayload)
 		if e != nil{
-			err = e
-			break
+			return written ,fmt.Errorf("CopyConn.tcp read:%w ,crpyto:%s" ,err ,e.Error())
 		}
 		w ,e := writeWithLength(dst ,towrite ,cfg.WriterNeedLength)
 		if e != nil{
-			err = e
-			break
+			return written ,fmt.Errorf("CopyConn.tcp write:%w" ,e)
 		}
 		written += w
-		if eof {
+
+		// payload has been written.if EOF exist ,do break.
+		if errors.Is(err ,io.EOF) {
+			err = nil
 			break
 		}
 	}

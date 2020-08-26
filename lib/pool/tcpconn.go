@@ -3,8 +3,6 @@ package pool
 import (
 	"net"
 	"sync"
-
-	"github.com/nynicg/cake/lib/log"
 )
 
 
@@ -39,5 +37,4 @@ func (p *TcpConnPool)FreeLocalTcpConn(conn net.Conn) {
 	_ = <- p.localTks
 	conn.Close()
 	p.localTcpPool.Put(conn)
-	log.Debug("free conn -> " ,len(p.localTks))
 }

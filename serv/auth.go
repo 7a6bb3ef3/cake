@@ -31,7 +31,7 @@ func AuthHMAC(hmcbit []byte) bool{
 }
 
 func RegisterUidCmd(cmd ahoy.Command ,uid string) error{
-	out, e := cryptor.NewHMAC(uid).SumAhoyHandshake(byte(cmd) ,uid ,ahoy.HMACLength)
+	out, e := cryptor.SumAhoyHandshake(byte(cmd) ,uid ,ahoy.HMACLength)
 	if e != nil{
 		return fmt.Errorf("registerAuth.%w" ,e)
 	}
