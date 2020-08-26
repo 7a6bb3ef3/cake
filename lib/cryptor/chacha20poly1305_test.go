@@ -8,13 +8,10 @@ import (
 
 func TestChacha20Poly1305_Encrypt(t *testing.T) {
 	key := "808182838485868788898a8b8c8d1233"
-	nonce := "4041424344454647484914a4"
-	aad := ""
-	cha ,e := NewChacha20Poly1305(key ,nonce ,aad)
+	cha ,e := NewChacha20Poly1305(key)
 	if e != nil{
 		t.Fatal(e)
 	}
-	t.Log(cha.Aad)
 	cases := buildInput()
 	for _ ,v := range cases{
 		inb ,e := hex.DecodeString(v)

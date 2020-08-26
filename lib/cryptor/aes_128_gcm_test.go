@@ -7,13 +7,12 @@ import (
 
 func TestNewAES128GCM(t *testing.T) {
 	key := "808182838485868788898a8b8c8d1233"
-	nonce := "404142434412"
-	gcm ,e := NewAES128GCM(key ,nonce)
+	gcm ,e := NewAES128GCM(key)
 	if e != nil{
 		t.Fatal(e)
 	}
 
-	gcmde ,e := NewAES128GCM(key ,nonce)
+	gcmde ,e := NewAES128GCM(key)
 	if e != nil{
 		t.Fatal(e)
 	}

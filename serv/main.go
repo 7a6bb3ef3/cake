@@ -13,7 +13,8 @@ import (
 
 type Config struct {
 	LocalAddr		string
-	AccessKey       string
+	LocalApi		string
+	Uid       		string
 	LogLevel		int
 	MaxConn			int
 	Help			bool
@@ -25,8 +26,9 @@ var config Config
 
 func init(){
 	cfg := &Config{}
-	flag.StringVar(&cfg.AccessKey ,"k" , "M5Rm2nmNyn1cg@ru" ,"remote proxy server access key")
-	flag.StringVar(&cfg.LocalAddr ,"s" ,"0.0.0.0:1921" ,"local proxy listening address")
+	flag.StringVar(&cfg.Uid ,"user" , "M5Rm2nmNyn1cg@ru" ,"recommend use uuid")
+	flag.StringVar(&cfg.LocalAddr ,"addr" ,"0.0.0.0:1921" ,"local proxy listening address")
+	flag.StringVar(&cfg.LocalApi ,"api" ,"0.0.0.0:1922" ,"local api listening address")
 	flag.IntVar(&cfg.LogLevel ,"l" ,int(zap.InfoLevel) ,"log level(from -1 to 5)")
 	flag.IntVar(&cfg.MaxConn ,"n" ,2048 ,"the maximum number of proxy connections")
 	flag.BoolVar(&cfg.Help ,"help" ,false ,"display help info")
@@ -48,7 +50,8 @@ func main(){
 	}
 	log.InitLog(zapcore.Level(config.LogLevel))
 	enmap := registryEncrypt(config)
-	startProxyServ(enmap)
+	go runProxyServ(enmap)
+	runApiServ()
 }
 
 

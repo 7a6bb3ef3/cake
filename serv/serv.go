@@ -19,7 +19,7 @@ func init(){
 	bufpool = pool.NewBufPool(32 * 1024)
 }
 
-func startProxyServ(enmap *cryptor.CryptorMap) {
+func runProxyServ(enmap *cryptor.CryptorMap) {
 	ls ,e := net.Listen("tcp" ,config.LocalAddr)
 	if e != nil {
 		log.Panic(e)
@@ -44,7 +44,7 @@ func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *cryptor.Cryptor
 		pl.FreeLocalTcpConn(fromsocks)
 	}()
 	fromsocks.(*net.TCPConn).SetKeepAlive(false)
-	cryptType ,addr ,e := handshake(config.AccessKey ,fromsocks)
+	cryptType ,addr ,e := handshake(fromsocks)
 	if e != nil{
 		log.Errorx("handshake " ,e)
 		return
@@ -88,22 +88,22 @@ func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *cryptor.Cryptor
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		upN ,e := ahoy.CopyConn(fromsocks ,outConn ,inboundEnv)
+		downN ,e := ahoy.CopyConn(fromsocks ,outConn ,inboundEnv)
 		if e != nil{
 			log.Warn("proxy request -> server." ,e)
 			return
 		}
-		up = upN
+		down = downN
 	}()
 
 	go func() {
 		defer wg.Done()
-		downN ,e := ahoy.CopyConn(outConn ,fromsocks ,outboundEnv)
+		upN ,e := ahoy.CopyConn(outConn ,fromsocks ,outboundEnv)
 		if e != nil{
 			log.Warn("server resp -> client. " ,e)
 			return
 		}
-		down = downN
+		up = upN
 	}()
 	wg.Wait()
 	log.Info(fmt.Sprintf("%s ,%d ↑ ,%d ↓ bytes" ,addr ,up ,down))
@@ -111,7 +111,7 @@ func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *cryptor.Cryptor
 
 // use a customer protocol ,for experiment
 // return encryption type ,proxy address and an error if there is
-func handshake(ackey string ,fromsocks net.Conn) (int ,string ,error){
+func handshake(fromsocks net.Conn) (int ,string ,error){
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
 	if _ ,e := io.ReadFull(fromsocks ,buf[:19]);e != nil{
@@ -122,8 +122,8 @@ func handshake(ackey string ,fromsocks net.Conn) (int ,string ,error){
 	enctype := buf[0]
 	if buf[1] != byte(ahoy.CommandConnect) {
 		return 0 ,"" ,errors.New("unsupport command")
-	}else if string(buf[2:18]) != ackey {
-		return 0 ,"" ,errors.New("access refused")
+	}else if !AuthHMAC(buf[2:18]) {
+		return 0 ,"" ,errors.New("incorrect uid or command")
 	}else if addrLen == 0{
 		return 0 ,"" ,errors.New("empty proxy addr")
 	}

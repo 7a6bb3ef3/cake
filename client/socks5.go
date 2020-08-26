@@ -20,7 +20,7 @@ func init(){
 	bufpool = pool.NewBufPool(32 * 1024)
 }
 
-func startLocalSocksProxy(encryptor cryptor.Cryptor){
+func startLocalSocksProxy(encryptor cryptor.Cryptor ,hc *cryptor.HMAC){
 	ls ,e := net.Listen("tcp" ,config.LocalSocksAddr)
 	if e != nil{
 		log.Panic(e)
@@ -34,11 +34,11 @@ func startLocalSocksProxy(encryptor cryptor.Cryptor){
 			log.Errorx("accept new client conn " ,e)
 			continue
 		}
-		go handleCliConn(cliconn ,pl ,encryptor)
+		go handleCliConn(cliconn ,pl ,encryptor ,hc)
 	}
 }
 
-func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor cryptor.Cryptor){
+func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,cpt cryptor.Cryptor ,hc *cryptor.HMAC){
 	defer func() {
 		cliconn.Close()
 		pl.FreeLocalTcpConn(cliconn)
@@ -76,14 +76,14 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor cryptor.Cryp
 			return
 		}
 	case BypassProxy:
-		cryptorSelect = encryptor
+		cryptorSelect = cpt
 		remote ,e = net.Dial("tcp" ,config.RemoteExitAddr)
 		if e != nil{
 			log.Errorx("dail remote exit " ,e)
 			socks5.ProxyFailed(socks5.SocksRespServErr ,cliconn)
 			return
 		}
-		if e := handshakeRemote(remote ,addr.Address());e != nil{
+		if e := handshakeRemote(remote ,addr.Address() ,hc);e != nil{
 			log.Errorx("handshake with remote failed " ,e)
 			socks5.ProxyFailed(socks5.SocksRespServErr ,cliconn)
 			return
@@ -141,7 +141,7 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,encryptor cryptor.Cryp
 }
 
 
-func handshakeRemote(remote net.Conn ,proxyhost string) error{
+func handshakeRemote(remote net.Conn ,proxyhost string ,hc *cryptor.HMAC) error{
 	if len(proxyhost) > 255 {
 		return errors.New("host addr is too long(>255)")
 	}
@@ -149,10 +149,14 @@ func handshakeRemote(remote net.Conn ,proxyhost string) error{
 	if e != nil{
 		return e
 	}
+	hcCip ,e := hc.SumAhoyHandshake(byte(ahoy.CommandConnect) ,config.Uid ,ahoy.HMACLength)
+	if e != nil{
+		return fmt.Errorf("hamc.sumN in handshake.%w" ,e)
+	}
 	req := ahoy.RemoteConnectRequest{
 		Encryption: 	byte(index),
 		Command: 		ahoy.CommandConnect,
-		AccessKey:      []byte(config.RemoteAccessKey),
+		Hmac:      		hcCip,
 		AddrLength:     byte(len(proxyhost)),
 		Addr: 			[]byte(proxyhost),
 	}
