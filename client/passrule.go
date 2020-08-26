@@ -94,8 +94,8 @@ func loadCNIPList() error{
 
 
 type domainRule struct {
-	Bypass	map[string]uint8	`toml:"bypass"`
-	Ads		map[string]uint8	`toml:"ads"`
+	Bypass		[]string	`toml:"bypass"`
+	Discard		[]string	`toml:"discard"`
 }
 
 func loadDomainList() domainRule{
@@ -114,14 +114,14 @@ const (
 // Bypass 0:proxy ,1:bypass ,2:discard
 func Bypass(dm string) int{
 
-	for k := range domainlist.Bypass{
-		if strings.HasSuffix(dm ,k) {
+	for _ ,v := range domainlist.Bypass{
+		if strings.HasSuffix(dm ,v) {
 			return BypassTrue
 		}
 	}
 
-	for k := range domainlist.Ads{
-		if strings.HasSuffix(dm ,k){
+	for _ ,v := range domainlist.Discard{
+		if strings.HasSuffix(dm ,v){
 			return BypassDiscard
 		}
 	}
