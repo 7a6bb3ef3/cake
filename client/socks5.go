@@ -27,23 +27,23 @@ func runLocalSocksProxy() {
 	}
 	log.Info("Socks5 listen on ", config.LocalSocksAddr)
 	for {
-		cliconn, e := ls.Accept()
+		src, e := ls.Accept()
 		if e != nil {
 			log.Errorx("accept new client conn ", e)
 			continue
 		}
-		go handleCliConn(cliconn)
+		go handleCliConn(src)
 	}
 }
 
-func handleCliConn(cliconn net.Conn) {
-	defer cliconn.Close()
-	cliconn.(*net.TCPConn).SetKeepAlive(false)
-	if e := socks5.Handshake(cliconn); e != nil {
-		log.Errorx("handshake with "+cliconn.RemoteAddr().String(), e)
+func handleCliConn(src net.Conn) {
+	defer src.Close()
+	src.(*net.TCPConn).SetKeepAlive(false)
+	if e := socks5.Handshake(src); e != nil {
+		log.Errorx("handshake with "+src.RemoteAddr().String(), e)
 		return
 	}
-	addr, e := socks5.ParseCMD(cliconn)
+	addr, e := socks5.ParseCMD(src)
 	if e != nil {
 		log.Errorx("parse client cmd and addr", e)
 		return
@@ -51,53 +51,53 @@ func handleCliConn(cliconn net.Conn) {
 
 	bypass := Bypass(addr.Host())
 	var (
-		remote net.Conn
+		dst           net.Conn
 		cryptorSelect cryptor.Cryptor
 	)
 	switch bypass {
 	case BypassDiscard:
-		socks5.ProxyFailed(socks5.SocksRespHostUnreachable, cliconn)
+		socks5.ProxyFailed(socks5.SocksRespHostUnreachable, src)
 		return
 	case BypassTrue:
 		cryptorSelect = cryptor.GetTypePlain()
-		remote, e = net.Dial("tcp", addr.Address())
+		dst, e = net.Dial("tcp", addr.Address())
 		if e != nil {
 			log.Errorx("dail bypassed remote addr ", e)
-			socks5.ProxyFailed(socks5.SocksRespHostUnreachable, cliconn)
+			socks5.ProxyFailed(socks5.SocksRespHostUnreachable, src)
 			return
 		}
 	case BypassProxy:
-		i ,err := cryptor.GetIndexByName(config.EncryptType)
-		if err != nil{
+		i, err := cryptor.GetIndexByName(config.EncryptType)
+		if err != nil {
 			log.Errorx("dail bypassed remote addr ", e)
-			socks5.ProxyFailed(socks5.SocksRespHostUnreachable, cliconn)
+			socks5.ProxyFailed(socks5.SocksRespHostUnreachable, src)
 			return
 		}
-		cp ,rdk ,e := cryptor.NewCryptorX(i)
-		if e != nil{
-			log.Errorx("newCryptorX " ,e)
-			socks5.ProxyFailed(socks5.SocksRespServErr, cliconn)
+		cp, rdk, e := cryptor.NewCryptorX(i)
+		if e != nil {
+			log.Errorx("newCryptorX ", e)
+			socks5.ProxyFailed(socks5.SocksRespServErr, src)
 			return
 		}
 		cryptorSelect = cp
-		remote, e = net.Dial("tcp", config.RemoteExitAddr)
+		dst, e = net.Dial("tcp", config.RemoteExitAddr)
 		if e != nil {
 			log.Errorx("dail remote exit ", e)
-			socks5.ProxyFailed(socks5.SocksRespServErr, cliconn)
+			socks5.ProxyFailed(socks5.SocksRespServErr, src)
 			return
 		}
-		if e := handshakeRemote(remote, addr.Address() ,rdk); e != nil {
+		if e := handshakeRemote(dst, addr.Address(), rdk); e != nil {
 			log.Errorx("handshake with remote failed ", e)
-			socks5.ProxyFailed(socks5.SocksRespServErr, cliconn)
+			socks5.ProxyFailed(socks5.SocksRespServErr, src)
 			return
 		}
 	default:
-		socks5.ProxyFailed(socks5.SocksRespServErr, cliconn)
+		socks5.ProxyFailed(socks5.SocksRespServErr, src)
 		return
 	}
-	defer remote.Close()
-	remote.(*net.TCPConn).SetKeepAlive(false)
-	if e := socks5.ProxyOK(cliconn); e != nil {
+	defer dst.Close()
+	dst.(*net.TCPConn).SetKeepAlive(false)
+	if e := socks5.ProxyOK(src); e != nil {
 		log.Errorx("local socks5 sent OK resp ", e)
 		return
 	}
@@ -121,26 +121,26 @@ func handleCliConn(cliconn net.Conn) {
 		up   int
 		down int
 	)
-	wg := sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
 		defer func() {
 			wg.Done()
-			remote.(*net.TCPConn).CloseWrite()
+			dst.(*net.TCPConn).CloseWrite()
 		}()
-		upn, e := ahoy.CopyConn(remote, cliconn, outboundEnv)
+		upn, e := ahoy.CopyConn(dst, src, outboundEnv)
 		up = upn
 		if e != nil {
-			log.Info(addr.Address(), " client request.", e)
+			log.Info(addr.Address(), " src request.", e)
 			return
 		}
 	}()
 	go func() {
 		defer wg.Done()
-		downn, e := ahoy.CopyConn(cliconn, remote, inboundEnv)
+		downn, e := ahoy.CopyConn(src, dst, inboundEnv)
 		down = downn
 		if e != nil {
-			log.Info(addr.Address(), " server resp.", e)
+			log.Info(addr.Address(), " dst resp.", e)
 			return
 		}
 	}()
@@ -148,7 +148,7 @@ func handleCliConn(cliconn net.Conn) {
 	onFinish(up, down, addr.Host())
 }
 
-func handshakeRemote(remote net.Conn, proxyhost string ,rdk string) error {
+func handshakeRemote(remote net.Conn, proxyhost string, rdk string) error {
 	if len(proxyhost) > 255 {
 		return errors.New("host addr is too long(>255)")
 	}

@@ -39,7 +39,6 @@ func BasicAuth(h httprouter.Handle, usr, pwd string) httprouter.Handle {
 	}
 }
 
-
 type ProxyStat struct {
 	TotalUp   int64
 	TotalDown int64
