@@ -10,14 +10,13 @@ const (
 	CommandConnect Command = iota + 1
 )
 
-const HMACLength = 16
-
 // customer remote cmd proto
 //  +-----+-----+-----+-----+-----+
 //  |ENC  |CMD  |RDKey|LEN  |ADDR |
 //  +-----+-----+-----+-----+-----+
 //  |1    |1    |32   |1    |LEN  |
-// if success ,server response(random 6 bit) TODO
+// if success ,server response(random 6 bit)
+// TODO take some specific data as resp ,like 1=ok ,2=failed or something
 type RemoteConnectRequest struct {
 	Encryption byte
 	Command    Command
