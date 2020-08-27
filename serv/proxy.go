@@ -22,7 +22,7 @@ func init() {
 }
 
 func runProxyServ(enmap *cryptor.CryptorMap) {
-	ls, e := net.Listen("tcp", config.LocalAddr)
+	ls, e := net.Listen("tcp4", config.LocalAddr)
 	if e != nil {
 		log.Panic(e)
 	}
