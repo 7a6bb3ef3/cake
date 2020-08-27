@@ -3,10 +3,11 @@ package ahoy
 import (
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/nynicg/cake/lib/cryptor"
 	"github.com/nynicg/cake/lib/log"
 	"github.com/nynicg/cake/lib/pool"
-	"io"
 )
 
 type CopyEnv struct {
@@ -40,28 +41,25 @@ func CopyConn(dst io.Writer ,src io.Reader ,cfg *CopyEnv) (int ,error){
 			err = e
 			srcpayload = d
 		}
-		if err != nil && !errors.Is(err ,io.EOF){
-			break
-		}
-		// no more payload to handle
-		if errors.Is(err ,io.EOF) && len(srcpayload) == 0 {
-			err = nil
-			break
-		}
-		// got EOF and some payload ,or no error here
-		towrite ,e := cfg.CryptFunc(srcpayload)
-		if e != nil{
-			return written ,fmt.Errorf("CopyConn.tcp read:%w ,crpyto:%s" ,err ,e.Error())
-		}
-		w ,e := writeWithLength(dst ,towrite ,cfg.WriterNeedLength)
-		if e != nil{
-			return written ,fmt.Errorf("CopyConn.tcp write:%w" ,e)
-		}
-		written += w
 
-		// payload has been written.if EOF exist ,do break.
-		if errors.Is(err ,io.EOF) {
-			err = nil
+
+		if len(srcpayload) > 0{
+			towrite ,e := cfg.CryptFunc(srcpayload)
+			if e != nil{
+				return written ,fmt.Errorf("CopyConn.tcp read:%w ,crpyto:%s" ,err ,e.Error())
+			}
+			w ,e := writeWithLength(dst ,towrite ,cfg.WriterNeedLength)
+			if e != nil{
+				return written ,fmt.Errorf("CopyConn.tcp write:%w" ,e)
+			}
+			written += w
+		}
+
+
+		if err != nil {
+			if errors.Is(err ,io.EOF) {
+				err = nil
+			}
 			break
 		}
 	}

@@ -51,13 +51,12 @@ func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *cryptor.Cryptor
 		log.Errorx("handshake " ,e)
 		return
 	}
-	log.Debug("got cryptor type " ,cryptType)
+	log.Debug("got enctype and addr " ,cryptType ," " ,addr)
 	crypt ,e := enmap.Get(cryptType)
 	if e != nil{
 		log.Errorx("get stream encryptor " ,e)
 		return
 	}
-	log.Debug("get proxy addr " ,addr ," from remote " ,fromsocks.RemoteAddr())
 	outConn ,e := net.Dial("tcp" ,addr)
 	if e != nil{
 		log.Errorx("dial proxy addr " + addr ,e)
@@ -93,7 +92,7 @@ func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *cryptor.Cryptor
 		downN ,e := ahoy.CopyConn(fromsocks ,outConn ,inboundEnv)
 		down = downN
 		if e != nil{
-			log.Warn(addr ," server resp." ,e)
+			log.Info(addr ," server resp." ,e)
 			return
 		}
 	}()
@@ -106,7 +105,7 @@ func handleConn(fromsocks net.Conn ,pl *pool.TcpConnPool ,enmap *cryptor.Cryptor
 		upN ,e := ahoy.CopyConn(outConn ,fromsocks ,outboundEnv)
 		up = upN
 		if e != nil{
-			log.Warn(addr ," client request. " ,e)
+			log.Info(addr ," client request. " ,e)
 			return
 		}
 	}()
@@ -122,21 +121,26 @@ func handshake(fromsocks net.Conn) (int ,string ,error){
 	if _ ,e := io.ReadFull(fromsocks ,buf[:19]);e != nil{
 		return 0 ,"" ,e
 	}
-	log.Debug("handshake pack " ,buf[:19])
-	addrLen := buf[18]
-	enctype := buf[0]
-	if buf[1] != byte(ahoy.CommandConnect) {
+	p1 := buf[:19]
+	pr := make([]byte ,19)
+	cryptor.XorStream(pr ,buf[:19] ,config.Key)
+	addrLen := pr[18]
+	enctype := pr[0]
+	if pr[1] != byte(ahoy.CommandConnect) {
 		return 0 ,"" ,errors.New("unsupport command")
-	}else if !AuthHMAC(buf[2:18]) {
-		return 0 ,"" ,errors.New("incorrect uid or command")
-	}else if addrLen == 0{
+	}
+	//if !AuthHMAC(pr[2:18]) {
+	//	return 0 ,"" ,errors.New("incorrect uid or command")
+	//}
+	if addrLen == 0{
 		return 0 ,"" ,errors.New("empty proxy addr")
 	}
 	// read addr
 	if _ ,e := io.ReadFull(fromsocks ,buf[:addrLen]);e != nil{
 		return 0 ,"" ,e
 	}
-	return int(enctype) ,string(buf[:addrLen]) ,nil
+	cryptor.XorStream(buf ,append(p1 ,buf[:addrLen]...) ,config.Key)
+	return int(enctype) ,string(buf[19:19+addrLen]) ,nil
 }
 
 func onReady(w io.Writer) error{

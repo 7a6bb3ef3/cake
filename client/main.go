@@ -35,7 +35,7 @@ func init(){
 	flag.IntVar(&cfg.MaxLocalConnNum ,"n" ,2048 ,"the maximum number of local connections")
 	flag.BoolVar(&cfg.Help ,"h" ,false ,"display help info")
 	flag.StringVar(&cfg.EncryptType ,"cryptor" ,"aes128gcm" ,"supported encryption methods ,following is the supported list:\n {chacha|aes128gcm|plain}")
-	flag.StringVar(&cfg.Key ,"key" ,"BAby10nStAGec0atBAby10nStAGec0at" ,"cryption methods key")
+	flag.StringVar(&cfg.Key ,"key" ,"BAby10nStAGec0atBAby10nStAGec0at" ,"cryption methods key(length must be 32)")
 	flag.Parse()
 	flag.Usage = usage
 	config = *cfg

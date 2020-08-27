@@ -122,7 +122,7 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,cpt cryptor.Cryptor){
 		upn ,e := ahoy.CopyConn(remote ,cliconn ,outboundEnv)
 		up = upn
 		if e != nil{
-			log.Warn(addr.Address() ," client request." ,e)
+			log.Info(addr.Address() ," client request." ,e)
 			return
 		}
 	}()
@@ -131,7 +131,7 @@ func handleCliConn(cliconn net.Conn ,pl *pool.TcpConnPool,cpt cryptor.Cryptor){
 		downn ,e := ahoy.CopyConn(cliconn ,remote ,inboundEnv)
 		down = downn
 		if e != nil{
-			log.Warn(addr.Address() ," server resp." ,e)
+			log.Info(addr.Address() ," server resp." ,e)
 			return
 		}
 	}()
@@ -147,14 +147,14 @@ func handshakeRemote(remote net.Conn ,proxyhost string) error{
 	if e != nil{
 		return e
 	}
-	hcCip ,e := cryptor.SumAhoyHandshake(byte(ahoy.CommandConnect) ,config.Uid ,ahoy.HMACLength)
-	if e != nil{
-		return fmt.Errorf("hamc.sumN in handshake.%w" ,e)
-	}
+	//hcCip ,e := cryptor.SumAhoyHandshake(byte(ahoy.CommandConnect) ,config.Uid ,ahoy.HMACLength)
+	//if e != nil{
+	//	return fmt.Errorf("hamc.sumN in handshake.%w" ,e)
+	//}
 	req := ahoy.RemoteConnectRequest{
 		Encryption: 	byte(index),
 		Command: 		ahoy.CommandConnect,
-		Hmac:      		hcCip,
+		Hmac:      		[]byte{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		AddrLength:     byte(len(proxyhost)),
 		Addr: 			[]byte(proxyhost),
 	}
@@ -162,6 +162,7 @@ func handshakeRemote(remote net.Conn ,proxyhost string) error{
 	if e != nil{
 		return e
 	}
+	cryptor.XorStream(bts ,bts ,config.Key)
 	if _, e := remote.Write(bts);e != nil{
 		return e
 	}
