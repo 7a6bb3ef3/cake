@@ -39,8 +39,8 @@ func init(){
 
 	flag.StringVar(&cfg.LocalApiAddr ,"apiAddr" ,"0.0.0.0:1922" ,"local api listening address")
 	flag.BoolVar(&cfg.EnableAPI ,"api" ,false ,"enable api service")
-	flag.StringVar(&cfg.BAUserName ,"" ,uuid.New().String() ,"base auth user name(random initial value)")
-	flag.StringVar(&cfg.BAPassword ,"" ,uuid.New().String() ,"base auth password(random initial value)")
+	flag.StringVar(&cfg.BAUserName ,"apiUser" ,uuid.New().String() ,"base auth user name(random initial value)")
+	flag.StringVar(&cfg.BAPassword ,"apiPwd" ,uuid.New().String() ,"base auth password(random initial value)")
 	flag.Parse()
 	flag.Usage = usage
 	config = *cfg
