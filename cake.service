@@ -1,0 +1,13 @@
+[Unit]
+Description=cake of ICG. https://github.com/nynicg/cake
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/cake/cakeserv
+WorkingDirectory=/usr/local/cake
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
