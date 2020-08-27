@@ -34,7 +34,7 @@ func init() {
 	flag.StringVar(&cfg.LocalAddr, "addr", "0.0.0.0:1921", "local proxy listening address")
 	flag.IntVar(&cfg.LogLevel, "l", int(zap.InfoLevel), "log level(from -1 to 5)")
 	flag.IntVar(&cfg.MaxConn, "n", 2048, "the maximum number of proxy connections")
-	flag.BoolVar(&cfg.Help, "help", false, "display help info")
+	flag.BoolVar(&cfg.Help, "h", false, "display help info")
 	flag.StringVar(&cfg.Key, "key", "BAby10nStAGec0atBAby10nStAGec0at", "cryption methods key")
 
 	flag.StringVar(&cfg.LocalApiAddr, "apiAddr", "0.0.0.0:1922", "local api listening address")

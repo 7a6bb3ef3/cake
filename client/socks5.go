@@ -26,23 +26,18 @@ func runLocalSocksProxy() {
 		log.Panic(e)
 	}
 	log.Info("Socks5 listen on ", config.LocalSocksAddr)
-	pl := pool.NewTcpConnPool(config.MaxLocalConnNum)
 	for {
-		cliconn := pl.GetLocalTcpConn()
-		cliconn, e = ls.Accept()
+		cliconn, e := ls.Accept()
 		if e != nil {
 			log.Errorx("accept new client conn ", e)
 			continue
 		}
-		go handleCliConn(cliconn, pl)
+		go handleCliConn(cliconn)
 	}
 }
 
-func handleCliConn(cliconn net.Conn, pl *pool.TcpConnPool) {
-	defer func() {
-		cliconn.Close()
-		pl.FreeLocalTcpConn(cliconn)
-	}()
+func handleCliConn(cliconn net.Conn) {
+	defer cliconn.Close()
 	cliconn.(*net.TCPConn).SetKeepAlive(false)
 	if e := socks5.Handshake(cliconn); e != nil {
 		log.Errorx("handshake with "+cliconn.RemoteAddr().String(), e)
