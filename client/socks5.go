@@ -161,10 +161,6 @@ func handshakeRemote(remote net.Conn, proxyhost string ,rdk string) error {
 	if e != nil {
 		return e
 	}
-	//hcCip ,e := cryptor.SumAhoyHandshake(byte(ahoy.CommandConnect) ,config.Uid ,ahoy.HMACLength)
-	//if e != nil{
-	//	return fmt.Errorf("hamc.sumN in handshake.%w" ,e)
-	//}
 	req := ahoy.RemoteConnectRequest{
 		Encryption: byte(index),
 		Command:    ahoy.CommandConnect,

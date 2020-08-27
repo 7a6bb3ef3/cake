@@ -3,11 +3,9 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"sync/atomic"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/nynicg/cake/lib/ahoy"
 	"github.com/nynicg/cake/lib/log"
 )
 
@@ -16,7 +14,6 @@ func runApiServ() {
 		return
 	}
 	router := httprouter.New()
-	router.GET("/register/:uid/:cmd", wrap(Register))
 	router.GET("/stat", wrap(Stat))
 
 	log.Info("API service listen on ", config.LocalApiAddr)
@@ -42,16 +39,6 @@ func BasicAuth(h httprouter.Handle, usr, pwd string) httprouter.Handle {
 	}
 }
 
-func Register(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	uid := params.ByName("uid")
-	cmds, e := strconv.Atoi(params.ByName("cmd"))
-	if e != nil || cmds < 0 || cmds > 255 {
-		w.Write([]byte("error.param CMD only accept integer. range [0,255]"))
-		return
-	}
-	RegisterUidCmd(ahoy.Command(cmds), uid)
-	w.Write([]byte("ok"))
-}
 
 type ProxyStat struct {
 	TotalUp   int64

@@ -6,6 +6,7 @@ import (
 	"fmt"
 )
 
+// Deprecated
 func SumAhoyHandshake(cmd byte, uid string, length int) ([]byte, error) {
 	uidbyte := []byte(uid)
 	hs := hmac.New(sha256.New, uidbyte)
