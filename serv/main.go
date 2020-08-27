@@ -57,26 +57,7 @@ func main() {
 		return
 	}
 	log.InitLog(zapcore.Level(config.LogLevel))
-	enmap := registryEncrypt(config)
+	enmap := cryptor.RegistryAllCrypto(config.Key)
 	go runApiServ()
 	runProxyServ(enmap)
-}
-
-func registryEncrypt(config Config) *cryptor.CryptorMap {
-	enmap := cryptor.NewEncryptorMap()
-
-	enmap.Register(cryptor.CryptTypePlain, &cryptor.Plain{})
-
-	gcm, e := cryptor.NewAES128GCM(config.Key)
-	if e != nil {
-		panic(e)
-	}
-	enmap.Register(cryptor.CryptTypeAES128GCM, gcm)
-
-	cc, e := cryptor.NewChacha20Poly1305(config.Key)
-	if e != nil {
-		panic(e)
-	}
-	enmap.Register(cryptor.CryptTypeCHACHA, cc)
-	return enmap
 }

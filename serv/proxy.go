@@ -46,26 +46,25 @@ func handleConn(fromsocks net.Conn, pl *pool.TcpConnPool, enmap *cryptor.Cryptor
 		pl.FreeLocalTcpConn(fromsocks)
 	}()
 	fromsocks.(*net.TCPConn).SetKeepAlive(false)
-	cryptType, addr, e := handshake(fromsocks)
+	info, e := handshake(fromsocks)
 	if e != nil {
 		log.Errorx("handshake ", e)
 		return
 	}
-	log.Debug("got enctype and addr ", cryptType, " ", addr)
-	crypt, e := enmap.Get(cryptType)
+	crypt, e := cryptor.NewCryptor(info.cryptType ,string(info.randomKey))
 	if e != nil {
 		log.Errorx("get stream encryptor ", e)
 		return
 	}
-	outConn, e := net.Dial("tcp", addr)
+	outConn, e := net.Dial("tcp", info.addr)
 	if e != nil {
-		log.Errorx("dial proxy addr "+addr, e)
+		log.Error("dial proxy addr " ,info.addr, e)
 		return
 	}
 	defer outConn.Close()
 	outConn.(*net.TCPConn).SetKeepAlive(false)
 	if e := onReady(fromsocks); e != nil {
-		log.Errorx("done handshake "+addr, e)
+		log.Error("done handshake " ,info.addr, e)
 		return
 	}
 
@@ -92,7 +91,7 @@ func handleConn(fromsocks net.Conn, pl *pool.TcpConnPool, enmap *cryptor.Cryptor
 		downN, e := ahoy.CopyConn(fromsocks, outConn, inboundEnv)
 		down = downN
 		if e != nil {
-			log.Info(addr, " server resp.", e)
+			log.Info(info.addr, " server resp.", e)
 			return
 		}
 	}()
@@ -105,42 +104,54 @@ func handleConn(fromsocks net.Conn, pl *pool.TcpConnPool, enmap *cryptor.Cryptor
 		upN, e := ahoy.CopyConn(outConn, fromsocks, outboundEnv)
 		up = upN
 		if e != nil {
-			log.Info(addr, " client request. ", e)
+			log.Info(info.addr, " client request. ", e)
 			return
 		}
 	}()
 	wg.Wait()
-	onFinish(up, down, addr)
+	onFinish(up, down, info.addr)
+}
+
+
+type hsinfo struct {
+	cryptType		int
+	randomKey		[]byte
+	addr			string
 }
 
 // use a customer protocol ,for experiment
 // return encryption type ,proxy address and an error if there is
-func handshake(fromsocks net.Conn) (int, string, error) {
+//  +-----+-----+-----+-----+-----+
+//  |ENC  |CMD  |RDKey|LEN  |ADDR |
+//  +-----+-----+-----+-----+-----+
+//  |1    |1    |32   |1    |LEN  |
+// if success ,server response(random 6 bit)
+func handshake(fromsocks net.Conn) (hsinfo , error) {
+	info := hsinfo{}
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
-	if _, e := io.ReadFull(fromsocks, buf[:19]); e != nil {
-		return 0, "", e
+	if _, e := io.ReadFull(fromsocks, buf[:35]); e != nil {
+		return info, e
 	}
-	p1 := buf[:19]
-	pr := make([]byte, 19)
-	cryptor.XorStream(pr, buf[:19], config.Key)
-	addrLen := pr[18]
-	enctype := pr[0]
+	p1 := buf[:35]
+	pr := make([]byte, 35)
+	cryptor.XorStream(pr, buf[:35], config.Key)
+	addrLen := pr[34]
+	info.cryptType = int(pr[0])
+	info.randomKey = pr[2:34]
 	if pr[1] != byte(ahoy.CommandConnect) {
-		return 0, "", errors.New("unsupport command")
+		return info, errors.New("unsupport command")
 	}
-	//if !AuthHMAC(pr[2:18]) {
-	//	return 0 ,"" ,errors.New("incorrect uid or command")
-	//}
 	if addrLen == 0 {
-		return 0, "", errors.New("empty proxy addr")
+		return info, errors.New("empty proxy addr")
 	}
 	// read addr
 	if _, e := io.ReadFull(fromsocks, buf[:addrLen]); e != nil {
-		return 0, "", e
+		return info, e
 	}
 	cryptor.XorStream(buf, append(p1, buf[:addrLen]...), config.Key)
-	return int(enctype), string(buf[19 : 19+addrLen]), nil
+	info.addr = string(buf[35 : 35+addrLen])
+	return info, nil
 }
 
 func onReady(w io.Writer) error {

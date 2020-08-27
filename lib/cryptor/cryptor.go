@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"strings"
 	"sync"
 )
@@ -24,13 +25,40 @@ const (
 // both encryption or decryption func is ok
 type CryptFunc func(in []byte) (out []byte, e error)
 
+// NewCryptorX return random key
+func NewCryptorX(i int) (Cryptor ,string ,error){
+	k := random32key()
+	cr ,e := NewCryptor(i ,k)
+	if e != nil{
+		return nil ,k ,e
+	}
+	return cr ,k ,nil
+}
+
+
+func random32key() string{
+	return strings.ReplaceAll(uuid.New().String() ,"-" ,"")
+}
+
+func NewCryptor(i int ,key string) (Cryptor ,error){
+	switch i {
+	case CryptTypeAES128GCM:
+		return NewAES128GCM(key)
+	case CryptTypeCHACHA:
+		return NewChacha20Poly1305(key)
+	case CryptTypePlain:
+		return &Plain{} ,nil
+	}
+	return nil ,errors.New("unsupported cryption")
+}
+
 // StreamEncryptor used to cryptor communication in net.conn.
 type Cryptor interface {
 	Encrypt(in []byte) (out []byte, err error)
 	Decrypt(in []byte) (out []byte, err error)
 }
 
-func GetStreamEncryptorIndexByName(name string) (int, error) {
+func GetIndexByName(name string) (int, error) {
 	switch strings.ToLower(name) {
 	case NameAES128GCM:
 		return CryptTypeAES128GCM, nil
@@ -72,6 +100,26 @@ func (e *CryptorMap) Register(index int, en Cryptor) error {
 	}
 	e.m[index] = en
 	return nil
+}
+
+
+func RegistryAllCrypto(key string) *CryptorMap {
+	enmap := NewEncryptorMap()
+
+	enmap.Register(CryptTypePlain, &Plain{})
+
+	gcm, e := NewAES128GCM(key)
+	if e != nil {
+		panic(e)
+	}
+	enmap.Register(CryptTypeAES128GCM, gcm)
+
+	cc, e := NewChacha20Poly1305(key)
+	if e != nil {
+		panic(e)
+	}
+	enmap.Register(CryptTypeCHACHA, cc)
+	return enmap
 }
 
 // retrun result[:n]

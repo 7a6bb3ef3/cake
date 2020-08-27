@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nynicg/cake/lib/cryptor"
 	"github.com/nynicg/cake/lib/log"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -54,28 +53,6 @@ func main() {
 	log.InitLog(zapcore.Level(config.LogLevel))
 	log.Info("Use cryptor ", config.EncryptType)
 	loadPassrule()
-	cpt := getCryptor(config)
 	go startLocalHttpProxy()
-	startLocalSocksProxy(cpt)
-}
-
-func getCryptor(config Config) cryptor.Cryptor {
-	switch config.EncryptType {
-	case cryptor.NameAES128GCM:
-		cfb, e := cryptor.NewAES128GCM(config.Key)
-		if e != nil {
-			panic(e)
-		}
-		return cfb
-	case cryptor.NameCHACHA:
-		cc, e := cryptor.NewChacha20Poly1305(config.Key)
-		if e != nil {
-			panic(e)
-		}
-		return cc
-	case cryptor.NamePlain:
-		return &cryptor.Plain{}
-	default:
-		panic("unsupported encryption method")
-	}
+	runLocalSocksProxy()
 }
