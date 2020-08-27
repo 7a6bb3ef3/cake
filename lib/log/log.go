@@ -15,9 +15,9 @@ const logFileName = "cake.log"
 var logFile *os.File
 var logger *zap.SugaredLogger
 
-func InitLog(lvl zapcore.Level){
-	f ,e := os.OpenFile(logFileName,os.O_APPEND | os.O_WRONLY | os.O_CREATE ,0755)
-	if e != nil{
+func InitLog(lvl zapcore.Level) {
+	f, e := os.OpenFile(logFileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
+	if e != nil {
 		panic(e)
 	}
 	logFile = f
@@ -33,37 +33,37 @@ func newLogger(lvl zapcore.Level) {
 	encfg.EncodeTime = timeEncoder
 	//encfg.EncodeLevel = zapcore.CapitalLevelEncoder
 	encfg.EncodeLevel = zapcore.CapitalLevelEncoder
-	mulw := io.MultiWriter(logFile,os.Stderr)
+	mulw := io.MultiWriter(logFile, os.Stderr)
 	ws := zapcore.AddSync(mulw)
 	core := zapcore.NewCore(zapcore.NewConsoleEncoder(encfg), ws, lvl)
 	logger = zap.New(core).Sugar()
 }
 
-func Debug(args ...interface{}){
+func Debug(args ...interface{}) {
 	logger.Debug(args...)
 }
 
-func Info(args ...interface{}){
+func Info(args ...interface{}) {
 	logger.Info(args...)
 }
 
-func Warn(args ...interface{}){
+func Warn(args ...interface{}) {
 	logger.Warn(args...)
 }
 
-func Error(args ...interface{}){
+func Error(args ...interface{}) {
 	logger.Error(args...)
 }
 
-func Errorx(msg string ,err error){
-	logger.Error(msg ," -> " ,err)
+func Errorx(msg string, err error) {
+	logger.Error(msg, " -> ", err)
 }
 
-func Panic(args ...interface{}){
+func Panic(args ...interface{}) {
 	logger.Panic(args...)
 }
 
-func Fatal(args ...interface{}){
+func Fatal(args ...interface{}) {
 	logger.Fatal(args...)
 }
 
@@ -71,7 +71,7 @@ type AdaptLogger struct {
 	logger *zap.SugaredLogger
 }
 
-func (a *AdaptLogger)Printf(s string ,args ...interface{}){
+func (a *AdaptLogger) Printf(s string, args ...interface{}) {
 	//if strings.HasSuffix(s ,"\n") {
 	//	s = s[:len(s) - 1]
 	//}
@@ -80,6 +80,6 @@ func (a *AdaptLogger)Printf(s string ,args ...interface{}){
 	// disable the lib goproxy log info
 }
 
-func GetAdaptLogger() *AdaptLogger{
+func GetAdaptLogger() *AdaptLogger {
 	return &AdaptLogger{logger: logger}
 }

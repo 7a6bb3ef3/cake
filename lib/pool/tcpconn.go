@@ -5,12 +5,11 @@ import (
 	"sync"
 )
 
-
 func NewTcpConnPool(maxConnnum int) *TcpConnPool {
 	p := &TcpConnPool{}
-	p.localTks = make(chan struct{} ,maxConnnum)
+	p.localTks = make(chan struct{}, maxConnnum)
 	p.localTcpPool = sync.Pool{
-		New: func() interface{}{
+		New: func() interface{} {
 			return &net.TCPConn{}
 		},
 	}
@@ -18,14 +17,14 @@ func NewTcpConnPool(maxConnnum int) *TcpConnPool {
 }
 
 type TcpConnPool struct {
-	localTks chan struct{}
+	localTks     chan struct{}
 	localTcpPool sync.Pool
 }
 
-func (p *TcpConnPool)GetLocalTcpConn() net.Conn{
-	select{
+func (p *TcpConnPool) GetLocalTcpConn() net.Conn {
+	select {
 	case p.localTks <- struct{}{}:
-		conn ,ok := p.localTcpPool.Get().(*net.TCPConn)
+		conn, ok := p.localTcpPool.Get().(*net.TCPConn)
 		if !ok {
 			return p.localTcpPool.New().(net.Conn)
 		}
@@ -33,8 +32,8 @@ func (p *TcpConnPool)GetLocalTcpConn() net.Conn{
 	}
 }
 
-func (p *TcpConnPool)FreeLocalTcpConn(conn net.Conn) {
-	_ = <- p.localTks
+func (p *TcpConnPool) FreeLocalTcpConn(conn net.Conn) {
+	_ = <-p.localTks
 	conn.Close()
 	p.localTcpPool.Put(conn)
 }

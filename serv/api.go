@@ -11,22 +11,22 @@ import (
 	"github.com/nynicg/cake/lib/log"
 )
 
-func runApiServ(){
-	if !config.EnableAPI{
+func runApiServ() {
+	if !config.EnableAPI {
 		return
 	}
 	router := httprouter.New()
 	router.GET("/register/:uid/:cmd", wrap(Register))
-	router.GET("/stat" ,wrap(Stat))
+	router.GET("/stat", wrap(Stat))
 
-	log.Info("API service listen on " ,config.LocalApiAddr)
-	if e := http.ListenAndServe(config.LocalApiAddr, router);e != nil{
-		log.Errorx("api service has crashed." ,e)
+	log.Info("API service listen on ", config.LocalApiAddr)
+	if e := http.ListenAndServe(config.LocalApiAddr, router); e != nil {
+		log.Errorx("api service has crashed.", e)
 	}
 }
 
-func wrap(h httprouter.Handle) httprouter.Handle{
-	return BasicAuth(h ,config.BAUserName ,config.BAPassword)
+func wrap(h httprouter.Handle) httprouter.Handle {
+	return BasicAuth(h, config.BAUserName, config.BAPassword)
 }
 
 func BasicAuth(h httprouter.Handle, usr, pwd string) httprouter.Handle {
@@ -42,36 +42,36 @@ func BasicAuth(h httprouter.Handle, usr, pwd string) httprouter.Handle {
 	}
 }
 
-func Register(w http.ResponseWriter,r *http.Request ,params httprouter.Params){
+func Register(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	uid := params.ByName("uid")
-	cmds ,e := strconv.Atoi(params.ByName("cmd"))
-	if e != nil || cmds < 0 || cmds > 255{
+	cmds, e := strconv.Atoi(params.ByName("cmd"))
+	if e != nil || cmds < 0 || cmds > 255 {
 		w.Write([]byte("error.param CMD only accept integer. range [0,255]"))
 		return
 	}
-	RegisterUidCmd(ahoy.Command(cmds) ,uid)
+	RegisterUidCmd(ahoy.Command(cmds), uid)
 	w.Write([]byte("ok"))
 }
 
 type ProxyStat struct {
-	TotalUp		int64
-	TotalDown	int64
+	TotalUp   int64
+	TotalDown int64
 }
 
-func (p *ProxyStat) Add(up ,down int){
-	atomic.AddInt64(&p.TotalUp ,int64(up))
-	atomic.AddInt64(&p.TotalDown ,int64(down))
+func (p *ProxyStat) Add(up, down int) {
+	atomic.AddInt64(&p.TotalUp, int64(up))
+	atomic.AddInt64(&p.TotalDown, int64(down))
 }
 
-func Stat(w http.ResponseWriter,r *http.Request ,params httprouter.Params){
+func Stat(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	p := *proxyStat
-	bts ,e := json.Marshal(&p)
-	if e != nil{
+	bts, e := json.Marshal(&p)
+	if e != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("server internal error, check the lastest error log"))
-		log.Error("api service." ,e)
+		log.Error("api service.", e)
 		return
 	}
-	w.Header().Set("Content-Type" ,"application/json;charset=UTF-8")
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.Write(bts)
 }

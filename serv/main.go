@@ -13,45 +13,45 @@ import (
 )
 
 type Config struct {
-	LocalAddr		string
-	Uid       		string
-	LogLevel		int
-	MaxConn			int
-	Help			bool
-	Key				string
+	LocalAddr string
+	Uid       string
+	LogLevel  int
+	MaxConn   int
+	Help      bool
+	Key       string
 	// api server
-	EnableAPI		bool
-	LocalApiAddr	string
-	BAUserName		string
-	BAPassword		string
+	EnableAPI    bool
+	LocalApiAddr string
+	BAUserName   string
+	BAPassword   string
 }
 
 var config Config
 
-func init(){
+func init() {
 	cfg := &Config{}
-	flag.StringVar(&cfg.Uid ,"user" , "M5Rm2nmNyn1cg@ru" ,"recommend use uuid")
-	flag.StringVar(&cfg.LocalAddr ,"addr" ,"0.0.0.0:1921" ,"local proxy listening address")
-	flag.IntVar(&cfg.LogLevel ,"l" ,int(zap.InfoLevel) ,"log level(from -1 to 5)")
-	flag.IntVar(&cfg.MaxConn ,"n" ,2048 ,"the maximum number of proxy connections")
-	flag.BoolVar(&cfg.Help ,"help" ,false ,"display help info")
-	flag.StringVar(&cfg.Key ,"key" ,"BAby10nStAGec0atBAby10nStAGec0at" ,"cryption methods key")
+	flag.StringVar(&cfg.Uid, "user", "M5Rm2nmNyn1cg@ru", "recommend use uuid")
+	flag.StringVar(&cfg.LocalAddr, "addr", "0.0.0.0:1921", "local proxy listening address")
+	flag.IntVar(&cfg.LogLevel, "l", int(zap.InfoLevel), "log level(from -1 to 5)")
+	flag.IntVar(&cfg.MaxConn, "n", 2048, "the maximum number of proxy connections")
+	flag.BoolVar(&cfg.Help, "help", false, "display help info")
+	flag.StringVar(&cfg.Key, "key", "BAby10nStAGec0atBAby10nStAGec0at", "cryption methods key")
 
-	flag.StringVar(&cfg.LocalApiAddr ,"apiAddr" ,"0.0.0.0:1922" ,"local api listening address")
-	flag.BoolVar(&cfg.EnableAPI ,"api" ,false ,"enable api service")
-	flag.StringVar(&cfg.BAUserName ,"apiUser" ,uuid.New().String() ,"base auth user name(random initial value)")
-	flag.StringVar(&cfg.BAPassword ,"apiPwd" ,uuid.New().String() ,"base auth password(random initial value)")
+	flag.StringVar(&cfg.LocalApiAddr, "apiAddr", "0.0.0.0:1922", "local api listening address")
+	flag.BoolVar(&cfg.EnableAPI, "api", false, "enable api service")
+	flag.StringVar(&cfg.BAUserName, "apiUser", uuid.New().String(), "base auth user name(random initial value)")
+	flag.StringVar(&cfg.BAPassword, "apiPwd", uuid.New().String(), "base auth password(random initial value)")
 	flag.Parse()
 	flag.Usage = usage
 	config = *cfg
 }
 
-func usage(){
-	fmt.Fprintln(os.Stderr ,"Usage:cakeserv [OPTIONS]...")
+func usage() {
+	fmt.Fprintln(os.Stderr, "Usage:cakeserv [OPTIONS]...")
 	flag.PrintDefaults()
 }
 
-func main(){
+func main() {
 	if config.Help {
 		usage()
 		return
@@ -62,23 +62,21 @@ func main(){
 	runProxyServ(enmap)
 }
 
-
-
-func registryEncrypt(config Config) *cryptor.CryptorMap{
+func registryEncrypt(config Config) *cryptor.CryptorMap {
 	enmap := cryptor.NewEncryptorMap()
 
-	enmap.Register(cryptor.CryptTypePlain ,&cryptor.Plain{})
+	enmap.Register(cryptor.CryptTypePlain, &cryptor.Plain{})
 
-	gcm ,e := cryptor.NewAES128GCM(config.Key)
+	gcm, e := cryptor.NewAES128GCM(config.Key)
 	if e != nil {
 		panic(e)
 	}
-	enmap.Register(cryptor.CryptTypeAES128GCM ,gcm)
+	enmap.Register(cryptor.CryptTypeAES128GCM, gcm)
 
-	cc ,e := cryptor.NewChacha20Poly1305(config.Key)
+	cc, e := cryptor.NewChacha20Poly1305(config.Key)
 	if e != nil {
 		panic(e)
 	}
-	enmap.Register(cryptor.CryptTypeCHACHA ,cc)
+	enmap.Register(cryptor.CryptTypeCHACHA, cc)
 	return enmap
 }

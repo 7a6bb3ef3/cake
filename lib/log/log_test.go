@@ -2,7 +2,7 @@ package log
 
 import "testing"
 
-func TestLog(t *testing.T){
+func TestLog(t *testing.T) {
 	Debug("1")
 	Info("2")
 	Warn("3")
