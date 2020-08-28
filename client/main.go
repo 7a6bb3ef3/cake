@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/nynicg/cake/client/gui"
 	"os"
 
 	"github.com/nynicg/cake/lib/log"
@@ -19,6 +20,7 @@ type Config struct {
 	EncryptType     string
 	Key             string
 	AutoConfigure	bool
+	AsIcon			bool
 }
 
 var config Config
@@ -32,6 +34,7 @@ func init() {
 	flag.StringVar(&cfg.LogLevel, "lvl", "info", "log level(from debug to fatal)")
 	flag.IntVar(&cfg.MaxLocalConnNum, "n", 2048, "the maximum number of local connections")
 	flag.BoolVar(&cfg.Help, "h", false, "display help info")
+	flag.BoolVar(&cfg.AsIcon, "icon", false, "place an icon and menu in the notification area(GUI ONLY)")
 	flag.BoolVar(&cfg.AutoConfigure, "auto", false, "auto configure system proxy")
 	flag.StringVar(&cfg.EncryptType, "cryptor", "aes128gcm", "supported encryption methods ,following is the supported list:\n {chacha|aes128gcm|plain}")
 	flag.StringVar(&cfg.Key, "key", "BAby10nStAGec0atBAby10nStAGec0at", "cryption methods key(length must be 32)")
@@ -51,6 +54,10 @@ func main() {
 		return
 	}
 	log.InitLog(config.LogLevel)
+	if config.AsIcon{
+		log.Info("Open as icon")
+		gui.RunAsIcon(func() {})
+	}
 	log.Info("Use cryptor ", config.EncryptType)
 	loadPassrule()
 	go startLocalHttpProxy()
