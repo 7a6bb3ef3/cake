@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/cake/cakeserv
+ExecStart=/usr/local/cake/cake
 WorkingDirectory=/usr/local/cake
 Restart=on-failure
 RestartSec=10s
