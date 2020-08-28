@@ -9,46 +9,37 @@ import (
 	"github.com/nynicg/cake/lib/log"
 )
 
-type Config struct {
-	RemoteExitAddr  string
-	Uid             string
-	LocalSocksAddr  string
-	LocalHttpAddr   string
-	MaxLocalConnNum int
-	LogLevel        string
-	Help            bool
-	EncryptType     string
-	Key             string
-	DisableGui		bool
-}
 
-var config Config
+var config ProxyCfg
 
-func init() {
-	cfg := &Config{}
-	flag.StringVar(&cfg.Uid, "user", "M5Rm2nmNyn1cg@ru", "recommend use uuid")
-	flag.StringVar(&cfg.RemoteExitAddr, "proxy", "127.0.0.1:1921", "remote proxy server address")
-	flag.StringVar(&cfg.LocalHttpAddr, "http", "127.0.0.1:1919", "local http proxy listening address")
-	flag.StringVar(&cfg.LocalSocksAddr, "socks", "127.0.0.1:1920", "local SOKCKS5 proxy listening address")
-	flag.StringVar(&cfg.LogLevel, "lvl", "info", "log level(from debug to fatal)")
-	flag.IntVar(&cfg.MaxLocalConnNum, "n", 2048, "the maximum number of local connections")
-	flag.BoolVar(&cfg.Help, "h", false, "display help info")
+// return help
+func parse() bool {
+	help := flag.Bool("h", false, "display help info")
+
+	cfg := &ProxyCfg{}
+	flag.StringVar(&cfg.LocalHttpAddr, "http", "", "local http proxy listening address")
+	flag.StringVar(&cfg.ServerPerfer, "server", "", "server addr")
+	flag.StringVar(&cfg.LocalSocksAddr, "socks", "", "local SOKCKS5 proxy listening address")
+	flag.StringVar(&cfg.LogLevel, "lvl", "", "log level(from debug to fatal)")
 	flag.BoolVar(&cfg.DisableGui, "nonGui", false, "place an icon and menu in the notification area(windows ONLY)")
-	flag.StringVar(&cfg.EncryptType, "cryptor", "aes128gcm", "supported encryption methods ,following is the supported list:\n {chacha|aes128gcm|plain}")
-	flag.StringVar(&cfg.Key, "key", "BAby10nStAGec0atBAby10nStAGec0at", "cryption methods key(length must be 32)")
-	flag.Parse()
-	flag.Usage = usage
-	config = *cfg
-}
+	flag.BoolVar(&cfg.EnforceProxy, "enforce", false, "proxy for every conns")
+	flag.StringVar(&cfg.EncryptType, "cryptor", "", "supported encryption methods ,following is the supported list:\n {chacha|aes128gcm|plain}")
+	flag.StringVar(&cfg.Key, "key", "", "cryption methods key(length must be 32)")
+	flag.StringVar(&cfg.Uid, "uid", "", "user uuid(length must be 32)")
 
-func usage() {
-	fmt.Fprintln(os.Stderr, "Usage:cakecli [OPTIONS]...")
-	flag.PrintDefaults()
+	flag.Parse()
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage:cakecli [OPTIONS]...")
+		flag.PrintDefaults()
+	}
+	overrideByCmd(cliConfig ,cfg)
+	config = cliConfig.ProxyCfg
+	return *help
 }
 
 func main() {
-	if config.Help {
-		usage()
+	if parse() {
+		flag.Usage()
 		return
 	}
 	log.InitLog(config.LogLevel)
@@ -57,7 +48,6 @@ func main() {
 		RunAsIcon()
 	}
 	log.Info("Use cryptor ", config.EncryptType)
-	loadPassrule()
 	go startLocalHttpProxy()
 	runLocalSocksProxy()
 }

@@ -16,7 +16,7 @@ func startLocalHttpProxy() {
 	prox.Logger = log.GetAdaptLogger()
 	prox.Tr = &http.Transport{
 		// have to use Dial here,if using DialContext ,
-		// goproxy can not proxy https request ,maybe there is some unknown problem in elazarl/goproxy lib ,
+		// goproxy can not proxy https request
 		Dial:            httpDial,
 		IdleConnTimeout: time.Minute,
 		Proxy:           nil,

@@ -80,7 +80,7 @@ func handleCliConn(src net.Conn) {
 			return
 		}
 		cryptorSelect = cp
-		dst, e = net.Dial("tcp", config.RemoteExitAddr)
+		dst, e = net.Dial("tcp", config.ServerPerfer)
 		if e != nil {
 			log.Errorx("dail remote exit ", e)
 			socks5.ProxyFailed(socks5.SocksRespServErr, src)
