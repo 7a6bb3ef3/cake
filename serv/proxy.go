@@ -17,7 +17,7 @@ var bufpool *pool.BufferPool
 var proxyStat *ProxyStat
 
 func init() {
-	bufpool = pool.NewBufPool(32 * 1024)
+	bufpool = pool.NewBufPool(16 * 1024)
 	proxyStat = &ProxyStat{}
 }
 

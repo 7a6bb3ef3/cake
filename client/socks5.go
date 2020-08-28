@@ -17,7 +17,7 @@ import (
 var bufpool *pool.BufferPool
 
 func init() {
-	bufpool = pool.NewBufPool(32 * 1024)
+	bufpool = pool.NewBufPool(16 * 1024)
 }
 
 func runLocalSocksProxy() {
