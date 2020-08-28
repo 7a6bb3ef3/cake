@@ -4,10 +4,35 @@ package main
 
 import (
 	"github.com/nynicg/cake/lib/log"
-	"github.com/skratchdot/open-golang/open"
 	"golang.org/x/sys/windows/registry"
 )
 
+
+// https://stackoverflow.com/questions/4283027/whats-the-format-of-the-defaultconnectionsettings-value-in-the-windows-registry
+//keep this value.
+//    1.  "00" placeholder
+//    2.  "00" placeholder
+//    3.  "00" placeholder
+//    4.  "xx" increments if changed
+//    5.  "xx" increments if 4. is "FF"
+//    6.  "00" placeholder
+//    7.  "00" placeholder
+//    8.  "01"=proxy deaktivated; other value=proxy enabled
+//    9.  "00" placeholder
+//    10. "00" placeholder
+//    11. "00" placeholder
+//    12. "xx" length of "proxyserver:port"
+//    13. "00" placeholder
+//    14. "00" placeholder
+//    15. "00" placeholder
+//    "proxyserver:port"
+//    if 'Bypass proxy for local addresses':::
+//    other stuff with unknown length
+//    "<local>"
+//    36 times "00"
+//    if no 'Bypass proxy for local addresses':::
+//    40 times "00"
+// TODO check the format ,actually it is different from the my local version(win10 18363) below
 var defaultRegVal = []byte{
 	70 ,0 ,0 ,0 ,50 ,1 ,0 ,0 ,3 ,0 ,0 ,0 ,14 ,0 ,0 ,0 ,49 ,50 ,55 ,46 ,48 ,46 ,48 ,46 ,49 ,58 ,49 ,57 ,49 ,57 ,182 ,
 	0 ,0 ,0 ,108 ,111 ,99 ,97 ,108 ,104 ,111 ,115 ,116 ,59 ,49 ,50 ,55 ,46 ,42 ,59 ,49 ,48 ,46 ,42 ,59 ,49 ,55 ,50 ,
@@ -53,7 +78,6 @@ func configure(){
 	}
 	defer key.Close()
 	key.SetBinaryValue("DefaultConnectionSettings" ,b)
-	//refreshReg()
 }
 
 
@@ -72,10 +96,4 @@ func unconfigure() {
 	}
 	defer key.Close()
 	key.SetBinaryValue("DefaultConnectionSettings" ,b)
-	//refreshReg()
-}
-
-// TODO it will not take effect after updating the registry ,so we need to do something can refresh registry
-func refreshReg(){
-	open.Run("ms-settings:network-proxy")
 }
