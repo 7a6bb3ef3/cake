@@ -1,19 +1,70 @@
 package cryptor
 
 import (
+	"bytes"
 	"crypto/hmac"
-	"crypto/sha256"
-	"fmt"
+	"crypto/md5"
+	"math/rand"
+	"strconv"
+	"time"
 )
 
-// Deprecated
-func SumAhoyHandshake(cmd byte, uid string, length int) ([]byte, error) {
+var rd *rand.Rand
+
+func init(){
+	src := rand.NewSource(time.Now().UnixNano())
+	rd = rand.New(src)
+}
+
+func HMAC(uid string) []byte {
 	uidbyte := []byte(uid)
-	hs := hmac.New(sha256.New, uidbyte)
-	suminput := append([]byte{cmd, cmd}, []byte(uid)...)
-	out := hs.Sum(suminput)
-	if length < 0 || length > len(out) {
-		return nil, fmt.Errorf("out of bounds N %d ,expected [0 ,%d]", length, len(out))
+	hs := hmac.New(md5.New, uidbyte)
+	salt := salt(fbMultipleten()[rd.Intn(7)])
+	hs.Write(append([]byte(salt), uidbyte...))
+	return hs.Sum(nil)
+}
+
+func HMACAllTime(uid string) [][]byte{
+	out := make([][]byte ,7)
+	for i ,v := range fbMultipleten(){
+		uidbyte := []byte(uid)
+		hs := hmac.New(md5.New, uidbyte)
+		salt := salt(v)
+		hs.Write(append([]byte(salt), uidbyte...))
+		out[i] = hs.Sum(nil)
 	}
-	return out[:length], nil
+	return out
+}
+
+func VerifyHMAC(uid string ,b []byte) bool{
+	ns := fbMultipleten()
+	uy := []byte(uid)
+	for _ ,v := range ns{
+		hs := hmac.New(md5.New, uy)
+		sa := salt(v)
+		hs.Write(append([]byte(sa) ,uy...))
+		if bytes.Equal(b ,hs.Sum(nil)) {
+			return true
+		}
+	}
+	return false
+}
+
+func salt(i int64) string{
+	return "korone_godDoggo" + strconv.Itoa(int(i))
+}
+
+
+// take cur timestamp and the four number nearest to the timestamp which is multiple of 8.
+func fbMultipleten() []int64{
+	nums := make([]int64 ,7)
+	nums[0] = time.Now().Unix()
+	offset := nums[0] % 8
+	nums[1] = (nums[0] - offset) + 8
+	nums[2] = (nums[0] - offset) + 2 * 8
+	nums[3] = (nums[0] - offset) + 3 * 8
+	nums[4] = nums[0] - offset
+	nums[5] = (nums[0] - offset) - 8
+	nums[6] = (nums[0] - offset) - 8 * 2
+	return nums
 }

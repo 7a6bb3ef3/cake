@@ -29,6 +29,9 @@ const (
 
 // Bypass 0:proxy ,1:bypass ,2:discard
 func Bypass(dm string) int {
+	if config.EnforceProxy {
+		return BypassProxy
+	}
 	i, ok := GetDomainCache(dm)
 	if ok {
 		return i
