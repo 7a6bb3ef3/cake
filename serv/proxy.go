@@ -83,11 +83,7 @@ func handleConn(src net.Conn, pl *pool.TcpConnPool, enmap *cryptor.CryptorMap) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
-		defer func() {
-			wg.Done()
-			src.Close()
-			dst.Close()
-		}()
+		defer wg.Done()
 		downN, e := ahoy.CopyConn(src, dst, inboundEnv)
 		down = downN
 		if e != nil {
