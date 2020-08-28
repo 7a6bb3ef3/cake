@@ -1,15 +1,27 @@
 // +build windows
 
-package gui
+package main
 
 import (
+	"io/ioutil"
+	"os"
+
 	"github.com/getlantern/systray"
 	"github.com/nynicg/cake/lib/log"
 	"github.com/skratchdot/open-golang/open"
 )
 
+func loadIcon(path string) ([]byte ,error){
+	f ,e := os.OpenFile(path ,os.O_RDONLY ,0755)
+	if e != nil{
+		return nil ,e
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
+}
+
 func RunAsIcon(onexit func()){
-	go systray.Run(onReady , onexit)
+	go systray.Run(onReady, onexit)
 }
 
 func onReady() {
@@ -22,12 +34,13 @@ func onReady() {
 	systray.SetTitle("Cake")
 	systray.SetTooltip("Love and Spanner")
 
+	prox := true
 	go func() {
-		stt := systray.AddMenuItem("Status: OFF", "")
+		stt := systray.AddMenuItem("Status: ON", "")
 		stt.Disable()
 		systray.AddSeparator()
 		update := systray.AddMenuItem("Update", "")
-		runStop := systray.AddMenuItem("Run", "")
+		runStop := systray.AddMenuItem("Stop", "")
 		systray.AddSeparator()
 		mQuitOrig := systray.AddMenuItem("Quit", "")
 		for {
@@ -35,7 +48,16 @@ func onReady() {
 			case <-update.ClickedCh:
 				open.Run("https://github.com/nynicg/cake")
 			case <-runStop.ClickedCh:
-				open.Run("https://github.com/nynicg/cake")
+				if prox{
+					stt.SetTitle("Status:OFF")
+					unconfigure()
+					runStop.SetTitle("Run")
+				}else{
+					configure()
+					stt.SetTitle("Status:ON")
+					runStop.SetTitle("Stop")
+				}
+				prox = !prox
 			case <-mQuitOrig.ClickedCh:
 				systray.Quit()
 			}
