@@ -26,10 +26,10 @@ func runProxyServ(enmap *cryptor.CryptorMap) {
 	if e != nil {
 		log.Panic(e)
 	}
-	pl := pool.NewTcpConnPool(config.MaxConn)
+	pl := pool.NewTickets(config.MaxConn)
 	log.Info("Listen on ", config.LocalAddr)
 	for {
-		src := pl.GetLocalTcpConn()
+		pl.GetTicket()
 		src, e := ls.Accept()
 		if e != nil {
 			log.Errorx("accept new client conn ", e)
@@ -39,11 +39,11 @@ func runProxyServ(enmap *cryptor.CryptorMap) {
 	}
 }
 
-func handleConn(src net.Conn, pl *pool.TcpConnPool, enmap *cryptor.CryptorMap) {
+func handleConn(src net.Conn, pl *pool.Tickets, enmap *cryptor.CryptorMap) {
 	log.Debug("handle conn from ", src.RemoteAddr())
 	defer func() {
 		src.Close()
-		pl.FreeLocalTcpConn(src)
+		pl.FreeTicket()
 	}()
 	src.(*net.TCPConn).SetKeepAlive(false)
 	info, e := handshake(src)

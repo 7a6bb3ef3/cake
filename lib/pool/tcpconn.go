@@ -1,39 +1,22 @@
 package pool
 
-import (
-	"net"
-	"sync"
-)
-
-func NewTcpConnPool(maxConnnum int) *TcpConnPool {
-	p := &TcpConnPool{}
+func NewTickets(maxConnnum int) *Tickets {
+	p := &Tickets{}
 	p.localTks = make(chan struct{}, maxConnnum)
-	p.localTcpPool = sync.Pool{
-		New: func() interface{} {
-			return &net.TCPConn{}
-		},
-	}
 	return p
 }
 
-type TcpConnPool struct {
+type Tickets struct {
 	localTks     chan struct{}
-	localTcpPool sync.Pool
 }
 
-func (p *TcpConnPool) GetLocalTcpConn() net.Conn {
+func (p *Tickets) GetTicket() {
 	select {
 	case p.localTks <- struct{}{}:
-		conn, ok := p.localTcpPool.Get().(*net.TCPConn)
-		if !ok {
-			return p.localTcpPool.New().(net.Conn)
-		}
-		return conn
+		// TODO timeout
 	}
 }
 
-func (p *TcpConnPool) FreeLocalTcpConn(conn net.Conn) {
+func (p *Tickets) FreeTicket() {
 	_ = <-p.localTks
-	conn.Close()
-	p.localTcpPool.Put(conn)
 }

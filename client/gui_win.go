@@ -21,7 +21,10 @@ func loadIcon(path string) ([]byte ,error){
 }
 
 func RunAsIcon(){
-	go systray.Run(onReady, unconfigure)
+	go systray.Run(onReady, func() {
+		unconfigure()
+		os.Exit(0)
+	})
 }
 
 func onReady() {
@@ -52,11 +55,11 @@ func onReady() {
 				if prox{
 					stt.SetTitle("Status:OFF")
 					runStop.SetTitle("Run")
-					pauseSocks()
+					unconfigure()
 				}else{
 					stt.SetTitle("Status:ON")
 					runStop.SetTitle("Stop")
-					resumeSocks()
+					configure()
 				}
 				prox = !prox
 			case <-mQuitOrig.ClickedCh:

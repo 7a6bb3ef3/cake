@@ -3,30 +3,21 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
+	"net"
+	"sync"
+
 	"github.com/nynicg/cake/lib/ahoy"
 	"github.com/nynicg/cake/lib/cryptor"
 	"github.com/nynicg/cake/lib/log"
 	"github.com/nynicg/cake/lib/pool"
 	"github.com/nynicg/cake/lib/socks5"
-	"io"
-	"net"
-	"sync"
-	"sync/atomic"
 )
 
 var bufpool *pool.BufferPool
-var pause	int64
 
 func init() {
 	bufpool = pool.NewBufPool(32 * 1024)
-}
-
-func pauseSocks(){
-	atomic.StoreInt64(&pause ,1)
-}
-
-func resumeSocks(){
-	atomic.StoreInt64(&pause ,0)
 }
 
 func runLocalSocksProxy() {
@@ -36,9 +27,6 @@ func runLocalSocksProxy() {
 	}
 	log.Info("Socks5 listen on ", config.LocalSocksAddr)
 	for {
-		if pause == 1{
-			continue
-		}
 		src, e := ls.Accept()
 		if e != nil {
 			log.Errorx("accept new client conn ", e)
