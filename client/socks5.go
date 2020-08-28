@@ -25,6 +25,7 @@ func runLocalSocksProxy() {
 	if e != nil {
 		log.Panic(e)
 	}
+	configure(config.LocalHttpAddr)
 	log.Info("Socks5 listen on ", config.LocalSocksAddr)
 	for {
 		src, e := ls.Accept()

@@ -63,10 +63,6 @@ func handleConn(src net.Conn, pl *pool.TcpConnPool, enmap *cryptor.CryptorMap) {
 	}
 	defer dst.Close()
 	dst.(*net.TCPConn).SetKeepAlive(false)
-	if e := onReady(src); e != nil {
-		log.Error("done handshake ", info.addr, e)
-		return
-	}
 
 	inboundEnv := &ahoy.CopyEnv{
 		ReaderWithLength: false,
@@ -150,13 +146,12 @@ func handshake(src net.Conn) (hsinfo, error) {
 	}
 	cryptor.XorStream(buf, append(p1, buf[:addrLen]...), config.Key)
 	info.addr = string(buf[35 : 35+addrLen])
+	// TODO client need some specific msg, no one likes 114514
+	_, e := src.Write([]byte{1, 1, 4, 5, 1, 4})
+	if e != nil{
+		return info ,e
+	}
 	return info, nil
-}
-
-// TODO client need some specific msg, no one likes 114514
-func onReady(w io.Writer) error {
-	_, e := w.Write([]byte{1, 1, 4, 5, 1, 4})
-	return e
 }
 
 func onFinish(up, down int, addr string) {
