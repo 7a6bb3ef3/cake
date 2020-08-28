@@ -17,9 +17,10 @@ enforceProxy=false
 disableGui=false
 
 serverPerfer="127.0.0.1:2021"
-serverExitAddr=[
+serverAddr=[
     "127.0.0.1:2021",
     #and more
+    "127.0.0.1:2023",
 ]
 
 

@@ -34,14 +34,14 @@ func Bypass(dm string) int {
 		return i
 	}
 
-	for _, v := range cliConfig.RuleCfg.Bypass {
+	for _, v := range globCfg.RuleCfg.Bypass {
 		if strings.HasSuffix(dm, v) {
 			PutDomainCache(dm, BypassTrue)
 			return BypassTrue
 		}
 	}
 
-	for _, v := range cliConfig.RuleCfg.Discard {
+	for _, v := range globCfg.RuleCfg.Discard {
 		if strings.HasSuffix(dm, v) {
 			PutDomainCache(dm, BypassDiscard)
 			return BypassDiscard

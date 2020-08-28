@@ -10,7 +10,7 @@ import (
 )
 
 
-var config ProxyCfg
+var config *ProxyCfg
 
 // return help
 func parse() bool {
@@ -32,8 +32,8 @@ func parse() bool {
 		fmt.Fprintln(os.Stderr, "Usage:cakecli [OPTIONS]...")
 		flag.PrintDefaults()
 	}
-	overrideByCmd(cliConfig ,cfg)
-	config = cliConfig.ProxyCfg
+	overrideByCmd(globCfg ,cfg)
+	config = &globCfg.ProxyCfg
 	return *help
 }
 

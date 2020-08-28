@@ -6,10 +6,10 @@ import (
 
 const fn = "./client_configure.toml"
 
-var cliConfig *Configure
+var globCfg *Configure
 
 func init(){
-	cliConfig = loadConfig()
+	globCfg = loadConfig()
 }
 
 type Configure struct {

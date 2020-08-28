@@ -42,6 +42,19 @@ func onReady() {
 	go func() {
 		stt := systray.AddMenuItem("Status: ON", "")
 		stt.Disable()
+		servs := systray.AddMenuItem(config.ServerPerfer ,"")
+		for _ ,v := range globCfg.ProxyCfg.ServerAddr{
+			s := servs.AddSubMenuItem(v ,"")
+			go func(addr string) {
+				for {
+					select {
+					case <-s.ClickedCh:
+						config.ServerPerfer = addr
+						servs.SetTitle(addr)
+					}
+				}
+			}(v)
+		}
 		systray.AddSeparator()
 		update := systray.AddMenuItem("Update", "")
 		runStop := systray.AddMenuItem("Stop", "")
