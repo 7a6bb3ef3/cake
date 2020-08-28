@@ -137,7 +137,11 @@ func handleCliConn(src net.Conn) {
 		}
 	}()
 	go func() {
-		defer wg.Done()
+		defer func() {
+			wg.Done()
+			dst.Close()
+			src.Close()
+		}()
 		downn, e := ahoy.CopyConn(src, dst, inboundEnv)
 		down = downn
 		if e != nil {
