@@ -56,7 +56,7 @@ func main() {
 	log.InitLog(config.LogLevel)
 	if !config.DisableGui && runtime.GOOS == "windows"{
 		log.Info("Open as icon")
-		RunAsIcon(func() {})
+		RunAsIcon()
 	}
 	log.Info("Use cryptor ", config.EncryptType)
 	loadPassrule()

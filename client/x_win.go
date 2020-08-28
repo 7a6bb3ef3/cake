@@ -19,6 +19,7 @@ func configure(){
 	defer key.Close()
 	key.SetBinaryValue("ProxyEnable" ,[]byte{1})
 	key.SetStringValue("ProxyServer" ,config.LocalHttpAddr)
+	refreshReg()
 }
 
 
@@ -31,4 +32,10 @@ func unconfigure() {
 	}
 	defer key.Close()
 	key.SetBinaryValue("ProxyEnable" ,[]byte{0})
+	refreshReg()
+}
+
+// TODO it will not take effect after updating the registry ,so we need to do something can refresh registry
+func refreshReg(){
+
 }

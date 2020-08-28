@@ -20,8 +20,8 @@ func loadIcon(path string) ([]byte ,error){
 	return ioutil.ReadAll(f)
 }
 
-func RunAsIcon(onexit func()){
-	go systray.Run(onReady, onexit)
+func RunAsIcon(){
+	go systray.Run(onReady, unconfigure)
 }
 
 func onReady() {
@@ -33,6 +33,7 @@ func onReady() {
 	systray.SetTemplateIcon(icob ,icob)
 	systray.SetTitle("Cake")
 	systray.SetTooltip("Love and Spanner")
+	configure()
 
 	prox := true
 	go func() {
@@ -50,12 +51,12 @@ func onReady() {
 			case <-runStop.ClickedCh:
 				if prox{
 					stt.SetTitle("Status:OFF")
-					unconfigure()
 					runStop.SetTitle("Run")
+					pauseSocks()
 				}else{
-					configure()
 					stt.SetTitle("Status:ON")
 					runStop.SetTitle("Stop")
+					resumeSocks()
 				}
 				prox = !prox
 			case <-mQuitOrig.ClickedCh:
