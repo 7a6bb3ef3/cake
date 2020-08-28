@@ -8,14 +8,12 @@ import (
 
 	"github.com/nynicg/cake/lib/cryptor"
 	"github.com/nynicg/cake/lib/log"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 type Config struct {
 	LocalAddr string
 	Uid       string
-	LogLevel  int
+	LogLevel  string
 	MaxConn   int
 	Help      bool
 	Key       string
@@ -32,7 +30,7 @@ func init() {
 	cfg := &Config{}
 	flag.StringVar(&cfg.Uid, "user", "M5Rm2nmNyn1cg@ru", "recommend use uuid")
 	flag.StringVar(&cfg.LocalAddr, "addr", "0.0.0.0:1921", "local proxy listening address")
-	flag.IntVar(&cfg.LogLevel, "l", int(zap.InfoLevel), "log level(from -1 to 5)")
+	flag.StringVar(&cfg.LogLevel, "lvl", "info", "log level(from debug to fatal)")
 	flag.IntVar(&cfg.MaxConn, "n", 2048, "the maximum number of proxy connections")
 	flag.BoolVar(&cfg.Help, "h", false, "display help info")
 	flag.StringVar(&cfg.Key, "key", "BAby10nStAGec0atBAby10nStAGec0at", "cryption methods key")
@@ -56,7 +54,7 @@ func main() {
 		usage()
 		return
 	}
-	log.InitLog(zapcore.Level(config.LogLevel))
+	log.InitLog(config.LogLevel)
 	enmap := cryptor.RegistryAllCrypto(config.Key)
 	go runApiServ()
 	runProxyServ(enmap)

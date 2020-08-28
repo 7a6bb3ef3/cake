@@ -3,10 +3,11 @@ package ahoy
 import (
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/nynicg/cake/lib/cryptor"
 	"github.com/nynicg/cake/lib/log"
 	"github.com/nynicg/cake/lib/pool"
-	"io"
 )
 
 type CopyEnv struct {

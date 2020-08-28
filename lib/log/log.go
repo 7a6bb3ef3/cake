@@ -3,6 +3,7 @@ package log
 import (
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -15,13 +16,32 @@ const logFileName = "cake.log"
 var logFile *os.File
 var logger *zap.SugaredLogger
 
-func InitLog(lvl zapcore.Level) {
+func GetLvlByName(n string) zapcore.Level{
+	switch strings.ToLower(n) {
+	case "debug":
+		return zap.DebugLevel
+	//case "info":
+	//	return zap.InfoLevel
+	case "warn":
+		return zap.WarnLevel
+	case "error":
+		return zap.ErrorLevel
+	case "panic":
+		return zap.PanicLevel
+	case "fatal":
+		return zap.FatalLevel
+	default:
+		return zap.InfoLevel
+	}
+}
+
+func InitLog(lvln string) {
 	f, e := os.OpenFile(logFileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0755)
 	if e != nil {
 		panic(e)
 	}
 	logFile = f
-	newLogger(lvl)
+	newLogger(GetLvlByName(lvln))
 }
 
 func newLogger(lvl zapcore.Level) {

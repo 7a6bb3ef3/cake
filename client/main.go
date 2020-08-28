@@ -6,8 +6,6 @@ import (
 	"os"
 
 	"github.com/nynicg/cake/lib/log"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 type Config struct {
@@ -16,7 +14,7 @@ type Config struct {
 	LocalSocksAddr  string
 	LocalHttpAddr   string
 	MaxLocalConnNum int
-	LogLevel        int
+	LogLevel        string
 	Help            bool
 	EncryptType     string
 	Key             string
@@ -31,7 +29,7 @@ func init() {
 	flag.StringVar(&cfg.RemoteExitAddr, "proxy", "127.0.0.1:1921", "remote proxy server address")
 	flag.StringVar(&cfg.LocalHttpAddr, "http", "127.0.0.1:1919", "local http proxy listening address")
 	flag.StringVar(&cfg.LocalSocksAddr, "socks", "127.0.0.1:1920", "local SOKCKS5 proxy listening address")
-	flag.IntVar(&cfg.LogLevel, "lvl", int(zap.InfoLevel), "log level(from -1 to 5)")
+	flag.StringVar(&cfg.LogLevel, "lvl", "info", "log level(from debug to fatal)")
 	flag.IntVar(&cfg.MaxLocalConnNum, "n", 2048, "the maximum number of local connections")
 	flag.BoolVar(&cfg.Help, "h", false, "display help info")
 	flag.BoolVar(&cfg.AutoConfigure, "auto", false, "auto configure system proxy")
@@ -52,7 +50,7 @@ func main() {
 		usage()
 		return
 	}
-	log.InitLog(zapcore.Level(config.LogLevel))
+	log.InitLog(config.LogLevel)
 	log.Info("Use cryptor ", config.EncryptType)
 	loadPassrule()
 	go startLocalHttpProxy()
