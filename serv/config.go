@@ -5,7 +5,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const pf = "./server_configure.toml"
+const pf = "./configure_server.toml"
 
 var globalConfig *ServConfig
 

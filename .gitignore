@@ -5,4 +5,4 @@ cakeserv
 cakecli
 cake
 *.exe~
-client_configure.toml
+configure_client.toml

@@ -4,7 +4,7 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-const fn = "./client_configure.toml"
+const fn = "./configure_client.toml"
 
 var globCfg *Configure
 

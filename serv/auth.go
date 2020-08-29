@@ -71,6 +71,8 @@ func (u *UIDManager) VerifyHMAC(hmac []byte) bool {
 	return ok
 }
 
+
+// TODO discard the cache at the end only
 func (u *UIDManager) refreshCache() {
 	u.m.Lock()
 	ulist := make([]string, len(u.uidMap))
