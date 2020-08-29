@@ -3,59 +3,38 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/google/uuid"
-	"os"
-
-	"github.com/nynicg/cake/lib/cryptor"
 	"github.com/nynicg/cake/lib/log"
+	"os"
 )
 
-type Config struct {
-	LocalAddr string
-	Uid       string
-	LogLevel  string
-	MaxConn   int
-	Help      bool
-	Key       string
-	// api server
-	EnableAPI    bool
-	LocalApiAddr string
-	BAUserName   string
-	BAPassword   string
-}
+func parse() bool{
+	help := flag.Bool("h", false, "display help info")
 
-var config Config
-
-func init() {
-	cfg := &Config{}
-	flag.StringVar(&cfg.Uid, "user", "M5Rm2nmNyn1cg@ru", "recommend use uuid")
-	flag.StringVar(&cfg.LocalAddr, "addr", "0.0.0.0:1921", "local proxy listening address")
-	flag.StringVar(&cfg.LogLevel, "lvl", "info", "log level(from debug to fatal)")
-	flag.IntVar(&cfg.MaxConn, "n", 2048, "the maximum number of proxy connections")
-	flag.BoolVar(&cfg.Help, "h", false, "display help info")
-	flag.StringVar(&cfg.Key, "key", "BAby10nStAGec0atBAby10nStAGec0at", "cryption methods key")
-
-	flag.StringVar(&cfg.LocalApiAddr, "apiAddr", "0.0.0.0:1922", "local api listening address")
-	flag.BoolVar(&cfg.EnableAPI, "api", false, "enable api service")
-	flag.StringVar(&cfg.BAUserName, "apiUser", uuid.New().String(), "base auth user name(random initial value)")
-	flag.StringVar(&cfg.BAPassword, "apiPwd", uuid.New().String(), "base auth password(random initial value)")
+	cfg := &ServConfig{}
+	flag.StringVar(&cfg.ProxyConfig.LocalAddr, "addr", "0.0.0.0:1921", "local proxy listening address")
+	flag.StringVar(&cfg.ProxyConfig.LogLevel, "lvl", "info", "log level(from debug to fatal)")
+	flag.IntVar(&cfg.ProxyConfig.MaxConn, "n", 2048, "the maximum number of proxy connections")
+	flag.StringVar(&cfg.ProxyConfig.Key, "key", "BAby10nStAGec0atBAby10nStAGec0at", "cryption methods key")
+	flag.StringVar(&cfg.ApiConfig.LocalApiAddr, "apiAddr", "0.0.0.0:1922", "local api listening address")
+	flag.BoolVar(&cfg.ApiConfig.EnableApi, "api", false, "enable api service")
+	flag.StringVar(&cfg.ApiConfig.BasicAuthUser, "apiUser", "", "base auth user name(random initial value)")
+	flag.StringVar(&cfg.ApiConfig.BasicAuthPassword, "apiPwd", "", "base auth password(random initial value)")
 	flag.Parse()
-	flag.Usage = usage
-	config = *cfg
-}
-
-func usage() {
-	fmt.Fprintln(os.Stderr, "Usage:cakeserv [OPTIONS]...")
-	flag.PrintDefaults()
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage:cakeserv [OPTIONS]...")
+		flag.PrintDefaults()
+	}
+	override(globalConfig ,cfg)
+	return *help
 }
 
 func main() {
-	if config.Help {
-		usage()
+	if parse() {
+		flag.Usage()
 		return
 	}
-	log.InitLog(config.LogLevel)
-	enmap := cryptor.RegistryAllCrypto(config.Key)
+	log.InitLog(globalConfig.ProxyConfig.LogLevel)
+	loadUidsFromCfg()
 	go runApiServ()
-	runProxyServ(enmap)
+	runProxyServ()
 }

@@ -148,10 +148,20 @@ func handleCliConn(src net.Conn) {
 	onFinish(up, down, addr.Host())
 }
 
-func handshakeRemote(remote net.Conn, proxyhost string, rdk string) error {
+func handshakeRemote(dst net.Conn, proxyhost string, rdk string) error {
 	if len(proxyhost) > 255 {
 		return errors.New("host addr is too long(>255)")
 	}
+	// hmac 16byte
+	if _ ,e := dst.Write(cryptor.HMAC(config.Uid));e != nil{
+		return fmt.Errorf("write hmac msg.%w" ,e)
+	}
+	buf := make([]byte, 6)
+	if _ ,e := io.ReadFull(dst ,buf[:1]);e != nil || buf[0] != ahoy.HMACOK {
+		return fmt.Errorf("remote server refused the connection or error in hmac.%w" ,e)
+	}
+
+	// cmd
 	index, e := cryptor.GetIndexByName(config.EncryptType)
 	if e != nil {
 		return e
@@ -168,12 +178,11 @@ func handshakeRemote(remote net.Conn, proxyhost string, rdk string) error {
 		return e
 	}
 	cryptor.XorStream(bts, bts, config.Key)
-	if _, e := remote.Write(bts); e != nil {
+	if _, e := dst.Write(bts); e != nil {
 		return e
 	}
 	// read ok resp {1,1,4,5,1,4}
-	buf := make([]byte, 6)
-	if _, e := io.ReadFull(remote, buf); e != nil {
+	if _, e := io.ReadFull(dst, buf); e != nil {
 		return e
 	}
 	return nil

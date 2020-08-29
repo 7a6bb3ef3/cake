@@ -1,0 +1,17 @@
+[proxy]
+localAddr="127.0.0.1:1921"
+maxConn=2048
+# debug ,info ,warn ,error ,panic ,fatal
+logLevel="info"
+# 32 length
+key="BAby10nStAGec0atBAby10nStAGec0at"
+# 32 length
+uids=[
+    "c885aa2a1dff3fafa4a53330bd06458c"
+]
+
+[api]
+enableApi=false
+localApiAddr="127.0.0.1:1922"
+basicAuthUser=""
+basicAuthPassword=""

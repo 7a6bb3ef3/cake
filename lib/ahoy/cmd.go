@@ -7,6 +7,11 @@ import (
 type Command byte
 
 const (
+	HMACOK = iota
+	HMACInvalid
+)
+
+const (
 	CommandConnect Command = iota + 1
 )
 

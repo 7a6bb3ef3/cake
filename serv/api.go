@@ -4,26 +4,28 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync/atomic"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/nynicg/cake/lib/log"
 )
 
 func runApiServ() {
-	if !config.EnableAPI {
+	if !globalConfig.ApiConfig.EnableApi {
 		return
 	}
 	router := httprouter.New()
 	router.GET("/stat", wrap(Stat))
+	router.POST("/register/:uid", wrap(Register))
 
-	log.Info("API service listen on ", config.LocalApiAddr)
-	if e := http.ListenAndServe(config.LocalApiAddr, router); e != nil {
+	log.Info("API service listen on ", globalConfig.ApiConfig.LocalApiAddr)
+	if e := http.ListenAndServe(globalConfig.ApiConfig.LocalApiAddr, router); e != nil {
 		log.Errorx("api service has crashed.", e)
 	}
 }
 
 func wrap(h httprouter.Handle) httprouter.Handle {
-	return BasicAuth(h, config.BAUserName, config.BAPassword)
+	return BasicAuth(h, globalConfig.ApiConfig.BasicAuthUser, globalConfig.ApiConfig.BasicAuthPassword)
 }
 
 func BasicAuth(h httprouter.Handle, usr, pwd string) httprouter.Handle {
@@ -60,4 +62,18 @@ func Stat(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	}
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.Write(bts)
+}
+
+func Register(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	uid := params.ByName("uid")
+	if len(uid) != 32 {
+		w.Write([]byte("uid length must be 32"))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	DefUidManager().RegisterUid(uid ,UIDInfo{
+		CreateTime: time.Now().Unix(),
+		Addr:       r.RemoteAddr,
+	})
+	w.Write([]byte("ok"))
 }

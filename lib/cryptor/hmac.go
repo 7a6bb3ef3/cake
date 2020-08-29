@@ -19,14 +19,16 @@ func init(){
 func HMAC(uid string) []byte {
 	uidbyte := []byte(uid)
 	hs := hmac.New(md5.New, uidbyte)
-	salt := salt(fbMultipleten()[rd.Intn(7)])
+	nums := fbMultipleten()
+	salt := salt(nums[rd.Intn(len(nums))])
 	hs.Write(append([]byte(salt), uidbyte...))
 	return hs.Sum(nil)
 }
 
 func HMACAllTime(uid string) [][]byte{
-	out := make([][]byte ,7)
-	for i ,v := range fbMultipleten(){
+	nums := fbMultipleten()
+	out := make([][]byte ,len(nums))
+	for i ,v := range nums{
 		uidbyte := []byte(uid)
 		hs := hmac.New(md5.New, uidbyte)
 		salt := salt(v)

@@ -21,13 +21,13 @@ func init() {
 	proxyStat = &ProxyStat{}
 }
 
-func runProxyServ(enmap *cryptor.CryptorMap) {
-	ls, e := net.Listen("tcp4", config.LocalAddr)
+func runProxyServ() {
+	ls, e := net.Listen("tcp4", globalConfig.ProxyConfig.LocalAddr)
 	if e != nil {
 		log.Panic(e)
 	}
-	pl := pool.NewTickets(config.MaxConn)
-	log.Info("Listen on ", config.LocalAddr)
+	pl := pool.NewTickets(globalConfig.ProxyConfig.MaxConn)
+	log.Info("Listen on ", globalConfig.ProxyConfig.LocalAddr)
 	for {
 		pl.GetTicket()
 		src, e := ls.Accept()
@@ -35,11 +35,11 @@ func runProxyServ(enmap *cryptor.CryptorMap) {
 			log.Errorx("accept new client conn ", e)
 			continue
 		}
-		go handleConn(src, pl, enmap)
+		go handleConn(src, pl)
 	}
 }
 
-func handleConn(src net.Conn, pl *pool.Tickets, enmap *cryptor.CryptorMap) {
+func handleConn(src net.Conn, pl *pool.Tickets) {
 	log.Debug("handle conn from ", src.RemoteAddr())
 	defer func() {
 		src.Close()
@@ -114,6 +114,9 @@ type hsinfo struct {
 	addr      string
 }
 
+
+// hmac 16byte
+//
 // use a customer protocol ,for experiment
 // return encryption type ,proxy address and an error if there is
 //  +-----+-----+-----+-----+-----+
@@ -125,12 +128,24 @@ func handshake(src net.Conn) (hsinfo, error) {
 	info := hsinfo{}
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
+	// verify HMAC
+	if _, e := io.ReadFull(src, buf[:16]); e != nil {
+		return info, e
+	}
+	if DefUidManager().VerifyHMAC(buf[:16]){
+		src.Write([]byte{ahoy.HMACOK})
+	}else{
+		src.Write([]byte{ahoy.HMACInvalid})
+		return info ,errors.New("hmac auth failed")
+	}
+
+	// parse cmd
 	if _, e := io.ReadFull(src, buf[:35]); e != nil {
 		return info, e
 	}
 	p1 := buf[:35]
 	pr := make([]byte, 35)
-	cryptor.XorStream(pr, buf[:35], config.Key)
+	cryptor.XorStream(pr, buf[:35], globalConfig.ProxyConfig.Key)
 	addrLen := pr[34]
 	info.cryptType = int(pr[0])
 	info.randomKey = pr[2:34]
@@ -144,7 +159,7 @@ func handshake(src net.Conn) (hsinfo, error) {
 	if _, e := io.ReadFull(src, buf[:addrLen]); e != nil {
 		return info, e
 	}
-	cryptor.XorStream(buf, append(p1, buf[:addrLen]...), config.Key)
+	cryptor.XorStream(buf, append(p1, buf[:addrLen]...), globalConfig.ProxyConfig.Key)
 	info.addr = string(buf[35 : 35+addrLen])
 	// TODO client need some specific msg, no one likes 114514
 	_, e := src.Write([]byte{1, 1, 4, 5, 1, 4})
