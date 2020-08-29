@@ -9,7 +9,7 @@ import (
 
 func TestHMAC(t *testing.T) {
 	in := buildInput()
-	for _ ,v := range in{
+	for _, v := range in {
 		b := HMAC(v)
 		t.Log(b)
 	}
@@ -20,7 +20,7 @@ func TestVerifyHMAC(t *testing.T) {
 	uid := "12323121232312123231212323121235"
 	hs := HMAC(uid)
 	time.Sleep(time.Second * time.Duration(rand.Intn(10)))
-	t.Log(VerifyHMAC(uid ,hs))
+	t.Log(VerifyHMAC(uid, hs))
 
 	t.Log(HMACAllTime(uid))
 	t.Log(hs)
@@ -30,7 +30,7 @@ func TestVerifyHMAC(t *testing.T) {
 func BenchmarkHMAC(b *testing.B) {
 	uid := "12323121232312123231212323121235"
 	b.ReportAllocs()
-	for i:=0;i<b.N;i++{
+	for i := 0; i < b.N; i++ {
 		HMAC(uid)
 	}
 }

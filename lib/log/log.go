@@ -16,7 +16,7 @@ const logFileName = "cake.log"
 var logFile *os.File
 var logger *zap.SugaredLogger
 
-func GetLvlByName(n string) zapcore.Level{
+func GetLvlByName(n string) zapcore.Level {
 	switch strings.ToLower(n) {
 	case "debug":
 		return zap.DebugLevel

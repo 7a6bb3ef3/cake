@@ -7,7 +7,7 @@ func NewTickets(maxConnnum int) *Tickets {
 }
 
 type Tickets struct {
-	localTks     chan struct{}
+	localTks chan struct{}
 }
 
 func (p *Tickets) GetTicket() {
