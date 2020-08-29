@@ -47,10 +47,10 @@ func CopyConn(dst io.Writer, src io.Reader, cfg *CopyEnv) (int, error) {
 				return written, fmt.Errorf("CopyConn.tcp read:%w ,crpyto:%s", err, e.Error())
 			}
 			w, e := writeWithLength(dst, towrite, cfg.WriterNeedLength)
+			written += w
 			if e != nil {
 				return written, fmt.Errorf("CopyConn.tcp write:%w", e)
 			}
-			written += w
 		}
 
 		if err != nil {
@@ -68,20 +68,18 @@ func writeWithLength(writer io.Writer, bytes []byte, needLength bool) (int, erro
 	l := len(bytes)
 	s := byte(l % 256)
 	f := byte((l - int(s)) / 256)
-	written := 0
 	if needLength {
-		if _, e := writer.Write([]byte{f, s}); e != nil {
-			return 0, fmt.Errorf("writeWithLength:%w", e)
+		if i, e := writer.Write([]byte{f, s}); e != nil {
+			return i, fmt.Errorf("writeWithLength:%w", e)
 		}
-		written = 2
 		log.Debug("write length head {", f, s, "}")
 	}
 
 	if n, e := writer.Write(bytes); e != nil {
-		return 0, fmt.Errorf("writeWithLength:%w", e)
+		return 2 + n, fmt.Errorf("writeWithLength:%w", e)
 	} else {
 		log.Debug("finish write ", n)
-		return written + n, nil
+		return 2 + n, nil
 	}
 }
 
