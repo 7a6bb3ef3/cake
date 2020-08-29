@@ -20,7 +20,7 @@ func HMAC(uid string) []byte {
 	uidbyte := []byte(uid)
 	hs := hmac.New(md5.New, uidbyte)
 	nums := fbMultipleten()
-	salt := salt(nums[rd.Intn(len(nums))])
+	salt := salt(nums[rd.Intn(5)])
 	hs.Write(append([]byte(salt), uidbyte...))
 	return hs.Sum(nil)
 }
@@ -57,16 +57,19 @@ func salt(i int64) string{
 }
 
 
-// take cur timestamp and the four number nearest to the timestamp which is multiple of 8.
+// the number nearest to the timestamp which is multiple of 8.
 func fbMultipleten() []int64{
-	nums := make([]int64 ,7)
-	nums[0] = time.Now().Unix()
-	offset := nums[0] % 8
-	nums[1] = (nums[0] - offset) + 8
-	nums[2] = (nums[0] - offset) + 2 * 8
-	nums[3] = (nums[0] - offset) + 3 * 8
-	nums[4] = nums[0] - offset
-	nums[5] = (nums[0] - offset) - 8
-	nums[6] = (nums[0] - offset) - 8 * 2
+	nums := make([]int64 ,8)
+	cur := time.Now().Unix()
+	offset := cur % 8
+
+	nums[0] = (cur - offset) + 2 * 8
+	nums[1] = (cur - offset) + 8
+	nums[2] = (cur - offset) - 8
+	nums[3] = cur - offset
+	nums[4] = (cur - offset) - 2 * 8
+
+	nums[5] = (cur - offset) + 3 * 8
+	nums[6] = (cur - offset) - 3 * 8
 	return nums
 }

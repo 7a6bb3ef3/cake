@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"github.com/nynicg/cake/lib/cryptor"
 	"sync"
 	"time"
@@ -17,7 +16,6 @@ func init(){
 	}
 	tk := time.NewTicker(time.Second * 8)
 	go func() {
-		defUidMg.refreshCache()
 		for range tk.C{
 			defUidMg.refreshCache()
 		}
@@ -31,6 +29,7 @@ func loadUidsFromCfg(){
 			Addr:       "from configure",
 		})
 	}
+	defUidMg.refreshCache()
 }
 
 func DefUidManager() *UIDManager{
@@ -66,7 +65,7 @@ func (u *UIDManager)UnregisterUid(uid string){
 
 func (u *UIDManager)VerifyHMAC(hmac []byte) bool{
 	u.cm.Lock()
-	 _ ,ok := u.hmacCache[hex.EncodeToString(hmac)]
+	 _ ,ok := u.hmacCache[string(hmac)]
 	u.cm.Unlock()
 	return ok
 }

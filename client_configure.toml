@@ -16,9 +16,9 @@ enforceProxy=false
 # and set diabledGui=true
 disableGui=false
 
-serverPerfer="127.0.0.1:2021"
+serverPerfer="127.0.0.1:1921"
 serverAddr=[
-    "127.0.0.1:2021",
+    "127.0.0.1:1921",
     #and more
     "127.0.0.1:2023",
 ]
