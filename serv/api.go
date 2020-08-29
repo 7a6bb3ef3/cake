@@ -71,7 +71,7 @@ func Register(w http.ResponseWriter, r *http.Request, params httprouter.Params) 
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	DefUidManager().RegisterUid(uid ,UIDInfo{
+	DefUidManager().RegisterUid(uid, UIDInfo{
 		CreateTime: time.Now().Unix(),
 		Addr:       r.RemoteAddr,
 	})

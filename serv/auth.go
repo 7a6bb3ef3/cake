@@ -1,30 +1,31 @@
 package main
 
 import (
-	"github.com/nynicg/cake/lib/cryptor"
 	"sync"
 	"time"
+
+	"github.com/nynicg/cake/lib/cryptor"
 )
 
 var defUidMg *UIDManager
 
-func init(){
+func init() {
 	defUidMg = &UIDManager{
-		uidMap: make(map[string]UIDInfo),
+		uidMap:    make(map[string]UIDInfo),
 		hmacCache: make(map[string]int64),
-		hmactmp: make(map[string]int64),
+		hmactmp:   make(map[string]int64),
 	}
 	tk := time.NewTicker(time.Second * 8)
 	go func() {
-		for range tk.C{
+		for range tk.C {
 			defUidMg.refreshCache()
 		}
 	}()
 }
 
-func loadUidsFromCfg(){
-	for _ ,v := range globalConfig.ProxyConfig.Uids{
-		DefUidManager().RegisterUid(v ,UIDInfo{
+func loadUidsFromCfg() {
+	for _, v := range globalConfig.ProxyConfig.Uids {
+		DefUidManager().RegisterUid(v, UIDInfo{
 			CreateTime: time.Now().Unix(),
 			Addr:       "from configure",
 		})
@@ -32,56 +33,56 @@ func loadUidsFromCfg(){
 	defUidMg.refreshCache()
 }
 
-func DefUidManager() *UIDManager{
+func DefUidManager() *UIDManager {
 	return defUidMg
 }
 
 type UIDInfo struct {
-	CreateTime		int64
-	Addr			string
+	CreateTime int64
+	Addr       string
 }
 
 type UIDManager struct {
-	uidMap 		map[string]UIDInfo
-	m			sync.Mutex
+	uidMap map[string]UIDInfo
+	m      sync.Mutex
 
 	// [hmac hex]create time
-	hmacCache	map[string]int64
-	hmactmp		map[string]int64
-	cm			sync.Mutex
+	hmacCache map[string]int64
+	hmactmp   map[string]int64
+	cm        sync.Mutex
 }
 
-func (u *UIDManager)RegisterUid(uid string ,info UIDInfo){
+func (u *UIDManager) RegisterUid(uid string, info UIDInfo) {
 	u.m.Lock()
 	u.uidMap[uid] = info
 	u.m.Unlock()
 }
 
-func (u *UIDManager)UnregisterUid(uid string){
+func (u *UIDManager) UnregisterUid(uid string) {
 	u.m.Lock()
-	delete(u.uidMap ,uid)
+	delete(u.uidMap, uid)
 	u.m.Unlock()
 }
 
-func (u *UIDManager)VerifyHMAC(hmac []byte) bool{
+func (u *UIDManager) VerifyHMAC(hmac []byte) bool {
 	u.cm.Lock()
-	 _ ,ok := u.hmacCache[string(hmac)]
+	_, ok := u.hmacCache[string(hmac)]
 	u.cm.Unlock()
 	return ok
 }
 
-func (u *UIDManager)refreshCache(){
+func (u *UIDManager) refreshCache() {
 	u.m.Lock()
-	ulist := make([]string ,len(u.uidMap))
+	ulist := make([]string, len(u.uidMap))
 	i := 0
-	for k := range u.uidMap{
+	for k := range u.uidMap {
 		ulist[i] = k
 		i++
 	}
 	u.m.Unlock()
 
-	for _ ,v := range ulist{
-		for _ ,validHmac := range cryptor.HMACAllTime(v){
+	for _, v := range ulist {
+		for _, validHmac := range cryptor.HMACAllTime(v) {
 			// use hex.encodetostring here cause more mem allocation
 			u.hmactmp[string(validHmac)] = time.Now().Unix()
 		}

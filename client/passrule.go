@@ -10,7 +10,7 @@ import (
 const ApnicUrl = "http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest"
 
 const (
-	ipFile     = "apnic-latest.txt"
+	ipFile = "apnic-latest.txt"
 )
 
 var domainCac domainCache

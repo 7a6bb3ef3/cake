@@ -153,12 +153,12 @@ func handshakeRemote(dst net.Conn, proxyhost string, rdk string) error {
 		return errors.New("host addr is too long(>255)")
 	}
 	// hmac 16byte
-	if _ ,e := dst.Write(cryptor.HMAC(config.Uid));e != nil{
-		return fmt.Errorf("write hmac msg.%w" ,e)
+	if _, e := dst.Write(cryptor.HMAC(config.Uid)); e != nil {
+		return fmt.Errorf("write hmac msg.%w", e)
 	}
 	buf := make([]byte, 6)
-	if _ ,e := io.ReadFull(dst ,buf[:1]);e != nil || buf[0] != ahoy.HMACOK {
-		return fmt.Errorf("remote server refused the connection or error in hmac.%w" ,e)
+	if _, e := io.ReadFull(dst, buf[:1]); e != nil || buf[0] != ahoy.HMACOK {
+		return fmt.Errorf("remote server refused the connection or error in hmac.%w", e)
 	}
 
 	// cmd

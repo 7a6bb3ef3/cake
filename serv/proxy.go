@@ -114,7 +114,6 @@ type hsinfo struct {
 	addr      string
 }
 
-
 // hmac 16byte
 //
 // use a customer protocol ,for experiment
@@ -132,11 +131,11 @@ func handshake(src net.Conn) (hsinfo, error) {
 	if _, e := io.ReadFull(src, buf[:16]); e != nil {
 		return info, e
 	}
-	if DefUidManager().VerifyHMAC(buf[:16]){
+	if DefUidManager().VerifyHMAC(buf[:16]) {
 		src.Write([]byte{ahoy.HMACOK})
-	}else{
+	} else {
 		src.Write([]byte{ahoy.HMACInvalid})
-		return info ,errors.New("hmac auth failed")
+		return info, errors.New("hmac auth failed")
 	}
 
 	// parse cmd
@@ -163,8 +162,8 @@ func handshake(src net.Conn) (hsinfo, error) {
 	info.addr = string(buf[35 : 35+addrLen])
 	// TODO client need some specific msg, no one likes 114514
 	_, e := src.Write([]byte{1, 1, 4, 5, 1, 4})
-	if e != nil{
-		return info ,e
+	if e != nil {
+		return info, e
 	}
 	return info, nil
 }

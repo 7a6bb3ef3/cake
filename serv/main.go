@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func parse() bool{
+func parse() bool {
 	help := flag.Bool("h", false, "display help info")
 
 	cfg := &ServConfig{}
@@ -24,7 +24,7 @@ func parse() bool{
 		fmt.Fprintln(os.Stderr, "Usage:cakeserv [OPTIONS]...")
 		flag.PrintDefaults()
 	}
-	override(globalConfig ,cfg)
+	override(globalConfig, cfg)
 	return *help
 }
 

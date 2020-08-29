@@ -43,19 +43,18 @@ func TestUIDManager(t *testing.T) {
 		}
 	}()
 
-	DefUidManager().RegisterUid(uid1 ,UIDInfo{})
-	DefUidManager().RegisterUid(uid2 ,UIDInfo{})
+	DefUidManager().RegisterUid(uid1, UIDInfo{})
+	DefUidManager().RegisterUid(uid2, UIDInfo{})
 	time.Sleep(time.Second * 30)
 }
 
-
 // 101163 ns/op	   64854 B/op	    1042 allocs/op
 func BenchmarkUIDManager(b *testing.B) {
-	DefUidManager().RegisterUid( randStr()[:32] ,UIDInfo{})
-	DefUidManager().RegisterUid( randStr()[:32] ,UIDInfo{})
-	DefUidManager().RegisterUid( randStr()[:32] ,UIDInfo{})
+	DefUidManager().RegisterUid(randStr()[:32], UIDInfo{})
+	DefUidManager().RegisterUid(randStr()[:32], UIDInfo{})
+	DefUidManager().RegisterUid(randStr()[:32], UIDInfo{})
 	b.ReportAllocs()
-	for i:=0;i<b.N;i++{
+	for i := 0; i < b.N; i++ {
 		DefUidManager().refreshCache()
 	}
 }

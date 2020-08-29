@@ -4,10 +4,10 @@ package main
 
 import "github.com/nynicg/cake/lib/log"
 
-func configure(){
+func configure() {
 	log.Warn("Configure the proxy manually")
 }
 
-func unconfigure(){
+func unconfigure() {
 	log.Warn("Configure the proxy manually")
 }

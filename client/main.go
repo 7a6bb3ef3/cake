@@ -9,7 +9,6 @@ import (
 	"github.com/nynicg/cake/lib/log"
 )
 
-
 var config *ProxyCfg
 
 // return help
@@ -32,7 +31,7 @@ func parse() bool {
 		fmt.Fprintln(os.Stderr, "Usage:cakecli [OPTIONS]...")
 		flag.PrintDefaults()
 	}
-	overrideByCmd(globCfg ,cfg)
+	overrideByCmd(globCfg, cfg)
 	config = &globCfg.ProxyCfg
 	return *help
 }
@@ -43,7 +42,7 @@ func main() {
 		return
 	}
 	log.InitLog(config.LogLevel)
-	if !config.DisableGui && runtime.GOOS == "windows"{
+	if !config.DisableGui && runtime.GOOS == "windows" {
 		log.Info("Open as icon")
 		RunAsIcon()
 	}
