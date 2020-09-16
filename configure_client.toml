@@ -25,7 +25,7 @@ serverAddr=[
 
 
 [rule]
-# 1->bypass 2->dicard
+# actually the word "bypass" here here should be "direct"
 bypass=[
     ".cn",
     "qq.com",
