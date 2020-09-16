@@ -1,5 +1,9 @@
 ### CAKE
 
+PROXY Project which use a custom time-based encryption protocol.GUI Support on Windows.
+
+> Experiment only.v2fly/core + Clash is the better way.
+
 #### Usage
 
 > Anyway ,If one day they use the whitelist, we are done.
