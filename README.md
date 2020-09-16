@@ -2,7 +2,7 @@
 
 PROXY Project which use a custom time-based encryption protocol.GUI Support on Windows.
 
-> Experiment only.v2fly/core + Clash is the better way.
+> Experiment only ,low optimization and incomplete features(DNS proxy...) .v2fly/core + Clash is the recommended way.
 
 #### Usage
 
