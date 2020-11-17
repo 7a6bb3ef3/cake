@@ -37,7 +37,7 @@ func Bypass(dm string) int {
 		return i
 	}
 
-	for _, v := range globCfg.RuleCfg.Bypass {
+	for _, v := range globCfg.RuleCfg.Direct {
 		if strings.HasSuffix(dm, v) {
 			PutDomainCache(dm, BypassTrue)
 			return BypassTrue

@@ -3,10 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
-	"runtime"
-
 	"github.com/nynicg/cake/lib/log"
+	"os"
 )
 
 var config *ProxyCfg
@@ -42,10 +40,6 @@ func main() {
 		return
 	}
 	log.InitLog(config.LogLevel)
-	if !config.DisableGui && runtime.GOOS == "windows" {
-		log.Info("Open as icon")
-		RunAsIcon()
-	}
 	log.Info("Use cryptor ", config.EncryptType)
 	go startLocalHttpProxy()
 	runLocalSocksProxy()

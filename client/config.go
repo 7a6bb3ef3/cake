@@ -31,7 +31,7 @@ type ProxyCfg struct {
 }
 
 type RuleCfg struct {
-	Bypass  []string `toml:"bypass"`
+	Direct  []string `toml:"direct"`
 	Discard []string `toml:"discard"`
 }
 

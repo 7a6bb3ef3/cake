@@ -81,13 +81,13 @@ func parseAddr(addrType byte, stream io.ReadWriter) (Addr, error) {
 		if _, e := io.ReadFull(stream, buf[:6]); e != nil {
 			return addr, e
 		}
-		addr.IPOrDomain = buf[:4]
+		addr.Hostx = buf[:4]
 		addr.Port = calcuPort(buf[4], buf[5])
 	//case SocksAddrTypeIPv6:
 	//if _ ,e := io.ReadFull(stream ,buf[:18]);e != nil{
 	//	return addr ,e
 	//}
-	//addr.IPOrDomain = buf[:16]
+	//addr.Domain = buf[:16]
 	//addr.Port = calcuPort(buf[16] ,buf[16])
 	case SocksAddrTypeDomain:
 		if _, e := io.ReadFull(stream, buf[:1]); e != nil {
@@ -98,7 +98,7 @@ func parseAddr(addrType byte, stream io.ReadWriter) (Addr, error) {
 			return addr, e
 		}
 		addr.IsDomain = true
-		addr.IPOrDomain = buf[:length]
+		addr.Hostx = buf[:length]
 		addr.Port = calcuPort(buf[length], buf[length+1])
 	default:
 		ProxyFailed(SocksRespUnsupportAddrType, stream)
@@ -117,8 +117,8 @@ func ProxyFailed(respCode byte, stream io.Writer) error {
 }
 
 func ProxyOKWithIpv4(stream io.Writer, ipv4 Addr) error {
-	_, e := stream.Write([]byte{SocksVersion, SocksRespOK, 0, SocksAddrTypeIPv4, ipv4.IPOrDomain[0],
-		ipv4.IPOrDomain[1], ipv4.IPOrDomain[2], ipv4.IPOrDomain[3], ipv4.BytePort()[0], ipv4.BytePort()[1],
+	_, e := stream.Write([]byte{SocksVersion, SocksRespOK, 0, SocksAddrTypeIPv4, ipv4.Hostx[0],
+		ipv4.Hostx[1], ipv4.Hostx[2], ipv4.Hostx[3], ipv4.BytePort()[0], ipv4.BytePort()[1],
 	})
 	return e
 }

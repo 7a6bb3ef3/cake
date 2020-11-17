@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/BurntSushi/toml"
-	"github.com/google/uuid"
+	"github.com/nynicg/cake/lib/thirdparty/uuid"
 )
 
 const pf = "./configure_server.toml"
@@ -58,13 +58,21 @@ func override(dst, src *ServConfig) {
 	if sa.BasicAuthPassword != "" {
 		dst.ApiConfig.BasicAuthPassword = sa.BasicAuthPassword
 	} else if dst.ApiConfig.BasicAuthPassword == "" {
-		dst.ApiConfig.BasicAuthPassword = uuid.New().String()
+		uid ,e := uuid.NewV4()
+		if e != nil{
+			panic(e)
+		}
+		dst.ApiConfig.BasicAuthPassword = uid.String()
 	}
 
 	if sa.BasicAuthUser != "" {
 		dst.ApiConfig.BasicAuthUser = sa.BasicAuthUser
 	} else if dst.ApiConfig.BasicAuthUser == "" {
-		dst.ApiConfig.BasicAuthUser = uuid.New().String()
+		uid ,e := uuid.NewV4()
+		if e != nil{
+			panic(e)
+		}
+		dst.ApiConfig.BasicAuthUser = uid.String()
 	}
 
 	if sa.LocalApiAddr != "" {
