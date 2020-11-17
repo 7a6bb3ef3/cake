@@ -1,6 +1,6 @@
 ### CAKE
 
-PROXY Project which use a custom time-based encryption protocol.GUI Support on Windows.
+PROXY Project which use a custom time-based encryption protocol.
 
 > Experiment only ,low optimization and incomplete features(DNS proxy...) .v2fly/core + Clash is the recommended way.
 
