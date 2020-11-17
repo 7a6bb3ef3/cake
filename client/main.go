@@ -29,6 +29,7 @@ func parse() bool {
 		fmt.Fprintln(os.Stderr, "Usage:cakecli [OPTIONS]...")
 		flag.PrintDefaults()
 	}
+	// opt mode?
 	overrideByCmd(globCfg, cfg)
 	config = &globCfg.ProxyCfg
 	return *help
