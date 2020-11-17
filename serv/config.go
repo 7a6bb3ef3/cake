@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/BurntSushi/toml"
-	"github.com/nynicg/cake/lib/thirdparty/uuid"
+	"github.com/nynicg/cake/lib/third/uuid"
 )
 
 const pf = "./configure_server.toml"
